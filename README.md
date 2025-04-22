@@ -47,9 +47,10 @@ npm run dev
 
 ## 🔌 API Endpoint Sample
 
-- `GET /api/orderItems` → Ambil daftar item order dengan nama produk
 - `GET /api/products` → Semua produk
-- `POST /api/orders` → Tambah order
+- `GET /api/orders` → Semua order
+- `GET /api/payment` → Semua payment
+- `GET /api/orderItems` → Ambil daftar item order dengan nama produk
 
 ---
 
