@@ -21,6 +21,7 @@ npm install
 Buat file `.env` dan isi:
 ```
 DATABASE_URL="mysql://user:password@localhost:3306/dbname"
+NEXTAUTH_SECRET=
 ```
 
 4. **Generate Prisma Client**
