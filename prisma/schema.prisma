@@ -50,3 +50,16 @@ model Payment {
   status      String?   @default("Paid")
   order       Order?    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
+
+model User {
+  id       Int      @id @default(autoincrement())
+  username String   @unique
+  password String   // Akan disimpan dalam bentuk hash
+  role     Role     @default(KASIR)
+  createdAt DateTime @default(now())
+}
+
+enum Role {
+  ADMIN
+  KASIR
+}

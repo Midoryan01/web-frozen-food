@@ -1,9 +1,29 @@
-// prisma/seed.js
-
 const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient();
 
 async function main() {
+  // Hash password
+  const adminPassword = await bcrypt.hash('admin123', 10);
+  const kasirPassword = await bcrypt.hash('kasir123', 10);
+
+  // Seed Users
+  await prisma.user.createMany({
+    data: [
+      {
+        username: 'admin',
+        password: adminPassword,
+        role: 'ADMIN',
+      },
+      {
+        username: 'kasir1',
+        password: kasirPassword,
+        role: 'KASIR',
+      },
+    ],
+    skipDuplicates: true,
+  });
+
   // Seed Products
   const productsData = [
     {
@@ -49,7 +69,7 @@ async function main() {
       customerId: 1001,
       orderDate: new Date(),
       status: "Completed",
-      totalAmount: 70000, // Misalnya dari 2 produk
+      totalAmount: 70000,
     },
   });
 
@@ -69,7 +89,7 @@ async function main() {
         orderId: order1.id,
         productId: 1,
         quantity: 2,
-        price: 40000, 
+        price: 40000,
       },
       {
         orderId: order1.id,
