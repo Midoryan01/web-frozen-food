@@ -1,40 +1,53 @@
-import prisma from '../../lib/prisma'
 import { NextResponse } from "next/server";
-type OrderItem = {
-  id: string;
-  orderId: string;
-  productId: string | null;
-  quantity: number;
-  price: number;
-};
-
-type Product = {
-  id: string;
-  name: string;
-};
-
-type OrderItemWithProduct = OrderItem & {
-  product: Product | null;
-};
+import prisma from "@/lib/prisma";
 
 export async function GET(req: Request) {
-  const orderItems = await prisma.orderItem.findMany({
-    include: {
-      product: {
-        select: {
-          name: true
-        }
-      }
-    }
-  });
+  try {
+    const orderItems = await prisma.orderItem.findMany({
+      select: {
+        id: true,
+        orderId: true,
+        productId: true,
+        quantity: true,
+        price: true,
+        product: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
 
-  const formatted = orderItems.map((item: OrderItemWithProduct) => ({
-    id: item.id,
-    orderId: item.orderId,
-    productName: item.product?.name,
-    quantity: item.quantity,
-    price: item.price
-  }));
+    return NextResponse.json(orderItems, { status: 200 });
+  } catch (error) {
+    console.error("Error fetching order items:", error);
+    return NextResponse.json(
+      { message: "Internal Server Error" },
+      { status: 500 }
+    );
+  }
+}
 
-  return NextResponse.json(formatted, { status: 200 });
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+
+    const newOrderItem = await prisma.orderItem.create({
+      data: {
+        orderId: body.orderId,
+        productId: body.productId,
+        quantity: body.quantity,
+        price: body.price,
+      },
+    });
+
+    return NextResponse.json(newOrderItem, { status: 201 });
+  } catch (error) {
+    console.error("Error creating order item:", error);
+    return NextResponse.json(
+      { message: "Internal Server Error" },
+      { status: 500 }
+    );
+  }
 }

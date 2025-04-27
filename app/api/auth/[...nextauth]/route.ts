@@ -1,58 +1,64 @@
 import NextAuth, { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import prisma from "../../../lib/prisma";
+import prisma from "../../../../lib/prisma";
 import { compare } from "bcryptjs";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
-      name: 'Credentials',
+      name: "Credentials",
       credentials: {
-        username: { label: 'Username', type: 'text' },
-        password: { label: 'Password', type: 'password' },
+        username: { label: "Username", type: "text" },
+        password: { label: "Password", type: "password" },
       },
       authorize: async (credentials) => {
         if (!credentials) {
-          console.log('❌ credentials kosong');
+          console.log("❌ credentials kosong");
           return null;
         }
-      
+
         console.log("📥 credentials:", credentials);
-      
+
         const user = await prisma.user.findUnique({
           where: { username: credentials.username },
         });
-      
+
         if (!user) {
           console.log("❌ User tidak ditemukan");
           return null;
         }
-      
-        const isValid = await compare(credentials.password, user.password ?? '');
+
+        if (!user.password) {
+          console.log("❌ User tidak memiliki password");
+          return null;
+        }
+
+        const isValid = await compare(credentials.password, user.password);
+
         console.log("🔐 valid password:", isValid);
-      
+
         if (!isValid) return null;
-      
+
         return {
-          id: user.id,
+          id: String(user.id),
           username: user.username,
           role: user.role,
         };
-      }           
+      },
     }),
   ],
   pages: {
-    signIn: '/login',
+    signIn: "/login",
   },
   session: {
-    strategy: 'jwt',
+    strategy: "jwt",
   },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+        token.id = String(user.id);
         token.username = user.username;
         token.role = user.role;
       }
@@ -60,14 +66,14 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (token && session.user) {
-        session.user.id = token.id;
-        session.user.username = token.username;
-        session.user.role = token.role;
+        session.user.id = token.id as string;
+        session.user.username = token.username as string;
+        session.user.role = token.role as string;
       }
       return session;
     },
   },
-  secret: process.env.NEXTAUTH_SECRET, // pastikan ada di .env
+  secret: process.env.NEXTAUTH_SECRET,
 };
 
 const handler = NextAuth(authOptions);
