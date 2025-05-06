@@ -36,7 +36,7 @@ npx prisma migrate dev --name init
 
 6. **Seed Data**
 ```bash
-npm run seed
+npx ts-node prisma/seed.ts
 ```
 
 7. **Jalankan Project**
