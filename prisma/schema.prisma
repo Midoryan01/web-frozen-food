@@ -14,6 +14,7 @@ model Product {
   description String?  // Kolom ini opsional
   price       Decimal  @db.Decimal(10, 2)  // Menyimpan harga dengan 2 angka di belakang koma
   stock       Int
+  image       Bytes? 
   createdAt   DateTime @default(now())  // Akan diisi otomatis saat record pertama kali dibuat
   updatedAt   DateTime @updatedAt      // Akan diperbarui otomatis setiap kali data diubah
   orderItems  OrderItem[]              // Relasi dengan OrderItem
