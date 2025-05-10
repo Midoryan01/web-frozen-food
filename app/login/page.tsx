@@ -15,7 +15,7 @@ export default function LoginPage() {
     const res = await signIn('credentials', {
       username,
       password,
-      redirect: false, // pastikan redirect false untuk kontrol manual
+      redirect: false, 
     });
 
     if (res?.ok) {

@@ -16,7 +16,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: NextRequest) {
-  const { username, password, role } = await req.json(); // Mengambil data dari body request
+  const { username, password, role, fullName } = await req.json(); // Mengambil data dari body request
 
   // Validasi input
   if (!username || !password || !role) {
@@ -27,15 +27,14 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // Hash password sebelum menyimpannya
-    const hashedPassword = await bcrypt.hash(password, 10); // 10 adalah salt rounds
+    const hashedPassword = await bcrypt.hash(password, 10); 
 
-    // Membuat user baru dengan password yang sudah di-hash
     const newUser = await prisma.user.create({
       data: {
         username,
-        password: hashedPassword, // Menyimpan password yang sudah di-hash
+        password: hashedPassword, 
         role, // ADMIN atau KASIR
+        fullName: fullName || "", 
       },
     });
 

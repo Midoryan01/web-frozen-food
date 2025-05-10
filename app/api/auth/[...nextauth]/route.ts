@@ -1,7 +1,7 @@
 import NextAuth, { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import prisma from "../../../../lib/prisma";
+import prisma from "@/lib/prisma";
 import { compare } from "bcryptjs";
 
 export const authOptions: NextAuthOptions = {
@@ -13,7 +13,7 @@ export const authOptions: NextAuthOptions = {
         username: { label: "Username", type: "text" },
         password: { label: "Password", type: "password" },
       },
-      authorize: async (credentials) => {
+      async authorize(credentials) {
         if (!credentials) {
           console.log("❌ credentials kosong");
           return null;
@@ -42,7 +42,7 @@ export const authOptions: NextAuthOptions = {
         if (!isValid) return null;
 
         return {
-          id: String(user.id),
+          id: user.id,
           username: user.username,
           role: user.role,
         };
@@ -58,7 +58,7 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = String(user.id);
+        token.id = user.id as any;
         token.username = user.username;
         token.role = user.role;
       }
@@ -66,7 +66,7 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (token && session.user) {
-        session.user.id = token.id as string;
+        session.user.id = token.id as any;
         session.user.username = token.username as string;
         session.user.role = token.role as string;
       }

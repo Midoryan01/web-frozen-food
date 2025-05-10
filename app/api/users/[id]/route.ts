@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "../../../../lib/prisma";
+import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { json } from "stream/consumers";
+import { error } from "console";
 
 export async function GET(
   req: NextRequest,
@@ -24,40 +26,53 @@ export async function GET(
   return NextResponse.json(users);
 }
 
-export async function PUT(
-  req: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
-  const { id } = await context.params;
-  const numericId = Number(id);
+// PATCH update user
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  const { username, password, role, fullName } = await req.json(); // Mengambil data dari body request
 
-  if (isNaN(numericId)) {
-    return NextResponse.json({ message: "Invalid User ID" }, { status: 400 });
+  // Validasi input jika ada
+  if (!username && !password && !role) {
+    return NextResponse.json(
+      { error: "At least one of username, password, or role is required" },
+      { status: 400 }
+    );
   }
 
   try {
-    const body = await req.json();
-    const { username, password, role } = body;
-
-    let updatedData: any = { username, role };
-
-    if (password) {
-      // Kalau password ada di body, hash dulu
-      const hashedPassword = await bcrypt.hash(password, 10);
-      updatedData.password = hashedPassword;
+    const userId = parseInt(params.id); // Mengambil userId dari URL parameter
+    if (isNaN(userId)) {
+      return NextResponse.json({ error: 'Invalid user ID' }, { status: 400 });
     }
 
+    // Mencari user yang akan diupdate
+    const existingUser = await prisma.user.findUnique({ where: { id: userId } });
+    if (!existingUser) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    // Update password jika ada
+    let hashedPassword = undefined;
+    if (password) {
+      hashedPassword = await bcrypt.hash(password, 10); // Hash password baru
+    }
+
+    // Update user
     const updatedUser = await prisma.user.update({
-      where: { id: numericId },
-      data: updatedData,
+      where: { id: userId },
+      data: {
+        username: username || existingUser.username, 
+        password: hashedPassword || existingUser.password, 
+        role: role || existingUser.role, 
+        fullName: fullName || existingUser.fullName,
+      },
     });
 
-    return NextResponse.json(updatedUser, { status: 200 });
+    return NextResponse.json(updatedUser, { status: 200 }); // Mengirimkan user yang telah diperbarui
   } catch (error) {
-    console.error("Error updating user:", error);
+    console.error('Error updating user:', error);
     return NextResponse.json(
-      { message: "Failed to update or User not found" },
-      { status: 404 }
+      { error: "Failed to update user" },
+      { status: 500 }
     );
   }
 }
@@ -75,10 +90,16 @@ export async function DELETE(
       where: { id: Number(id) }, // Menghapus user berdasarkan ID yang diberikan
     });
 
-    // Mengembalikan response dengan data user yang dihapus
-    return NextResponse.json(deletedUser, { status: 200 });
+    console.log("User deleted successfully:", deletedUser);
+
+    // Mengirimkan response dengan pesan bahwa user telah berhasil dihapus
+    return NextResponse.json(
+      { message: `User with ID ${id} has been successfully deleted` },
+      { status: 200 }
+    );
+    
   } catch (error) {
-    // Mengembalikan error jika user tidak ditemukan atau gagal menghapus
+    console.error("Error deleting user:", error);
     return NextResponse.json(
       { error: "User not found or failed to delete" },
       { status: 404 }
