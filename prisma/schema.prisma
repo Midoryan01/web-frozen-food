@@ -7,60 +7,97 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 model Product {
-  id          Int      @id @default(autoincrement()) // ID akan otomatis terisi saat data dimasukkan
+  id          Int         @id @default(autoincrement())
   name        String
-  description String?  // Kolom ini opsional
-  price       Decimal  @db.Decimal(10, 2)  // Menyimpan harga dengan 2 angka di belakang koma
-  stock       Int
-  image       Bytes? 
-  createdAt   DateTime @default(now())  // Akan diisi otomatis saat record pertama kali dibuat
-  updatedAt   DateTime @updatedAt      // Akan diperbarui otomatis setiap kali data diubah
-  orderItems  OrderItem[]              // Relasi dengan OrderItem
+  sku         String?     @unique
+  buyPrice    Decimal     @db.Decimal(10, 2)  // Harga beli
+  sellPrice   Decimal     @db.Decimal(10, 2)  // Harga jual
+  stock       Int         @default(0)
+  description String?
+  supplier    String?
+  expiryDate  DateTime
+  image       Bytes?
+  categoryId  Int?
+  category    Category?   @relation(fields: [categoryId], references: [id])
+  orderItems  OrderItem[]
+  stockLogs   StockLog[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
+model Category {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String?
+  products    Product[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
 
 model Order {
-  id          Int        @id @default(autoincrement())
-  customerId  Int?
-  orderDate   DateTime?  @default(now())
-  status      String?    @default("Pending")
-  totalAmount Decimal    @db.Decimal(10, 2)
-  items       OrderItem[]
-  payment     Payment[]
+  id            Int         @id @default(autoincrement())
+  orderNumber   String      @unique @default(uuid())
+  customerName  String?
+  cashierId     Int
+  cashier       User        @relation(fields: [cashierId], references: [id])
+  orderDate     DateTime    @default(now())
+  status        String      @default("PENDING")  // PENDING, COMPLETED, CANCELLED
+  totalAmount   Decimal     @db.Decimal(10, 2)
+  amountPaid    Decimal     @db.Decimal(10, 2)
+  changeAmount  Decimal     @db.Decimal(10, 2)
+  paymentMethod String      @default("CASH")     // CASH, CARD, TRANSFER
+  items         OrderItem[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model OrderItem {
-  id        Int      @id @default(autoincrement())
-  orderId   Int?
-  productId Int?     // Menggunakan Int karena Product.id bertipe Int
-  quantity  Int
-  price     Decimal  @db.Decimal(10, 2)
-  order     Order?   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id          Int      @id @default(autoincrement())
+  orderId     Int
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   Int
+  product     Product  @relation(fields: [productId], references: [id])
+  quantity    Int
+  buyPrice    Decimal  @db.Decimal(10, 2)  // Harga beli saat transaksi
+  sellPrice   Decimal  @db.Decimal(10, 2)  // Harga jual saat transaksi
+  subtotal    Decimal  @db.Decimal(10, 2)  // quantity * sellPrice
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-
-model Payment {
+model StockLog {
   id          Int       @id @default(autoincrement())
-  orderId     Int?
-  paymentDate DateTime? @default(now())
-  amount      Decimal   @db.Decimal(10, 2)
-  method      String
-  status      String?   @default("Paid")
-  order       Order?    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   Int
+  product     Product   @relation(fields: [productId], references: [id])
+  quantity    Int       // Positif (barang masuk) atau negatif (barang keluar)
+  type        String    // PURCHASE, SALE, ADJUSTMENT
+  buyPrice    Decimal?  @db.Decimal(10, 2)  // Harga beli saat restock
+  userId      Int
+  user        User      @relation(fields: [userId], references: [id])
+  notes       String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
 }
 
 model User {
-  id       Int      @id @default(autoincrement())
-  username String   @unique
-  password String   // Akan disimpan dalam bentuk hash
-  role     Role     @default(KASIR)
+  id         Int        @id @default(autoincrement())
+  username   String     @unique
+  password   String     // Disimpan sebagai hash
+  fullName   String
+  role       String     @default("KASIR")  // ADMIN, KASIR
+  isActive   Boolean    @default(true)
+  orders     Order[]
+  stockLogs  StockLog[]
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
 }
 
-enum Role {
-  ADMIN
-  KASIR
+enum OrderStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
 }
+
