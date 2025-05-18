@@ -141,11 +141,13 @@ const ProductsPage = () => {
         setPagination(data.meta);
 
         const uniqueCategories = data.data.reduce((acc: { id: number; name: string }[], product: Product) => {
-          if (product.category && !acc.some((cat) => cat.id === product.category.id)) {
-            acc.push({ id: product.category.id, name: product.category.name });
+          const category = product.category;
+          if (category && category.id && !acc.some((cat) => cat.id === category.id)) {
+            acc.push({ id: category.id, name: category.name });
           }
           return acc;
         }, []);
+
 
         setCategories(uniqueCategories);
       } catch (error) {
