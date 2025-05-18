@@ -44,8 +44,8 @@ model Order {
   orderDate     DateTime    @default(now())
   status        String      @default("PENDING")  // PENDING, COMPLETED, CANCELLED
   totalAmount   Decimal     @db.Decimal(10, 2)
-  amountPaid    Decimal     @db.Decimal(10, 2)
-  changeAmount  Decimal     @db.Decimal(10, 2)
+  amountPaid    Decimal?     @db.Decimal(10, 2)
+  changeAmount  Decimal?    @db.Decimal(10, 2)
   paymentMethod String      @default("CASH")     // CASH, CARD, TRANSFER
   items         OrderItem[]
   createdAt DateTime @default(now())
