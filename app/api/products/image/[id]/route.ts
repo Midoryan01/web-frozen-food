@@ -3,12 +3,12 @@ import prisma from "@/lib/prisma";
 
 export async function GET(
   request: Request,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = parseInt(context.params.id);
-    
-    if (isNaN(id)) {
+    const { id } = await context.params;
+    const numericId = Number(id);
+    if (isNaN(numericId)) {
       return NextResponse.json(
         { message: "Invalid product ID" },
         { status: 400 }
@@ -16,15 +16,14 @@ export async function GET(
     }
     
     // Log for debugging
-    console.log(`Fetching image for product ID: ${id}`);
-    
+    console.log(`Fetching image for product ID: ${numericId}`);
     const product = await prisma.product.findUnique({
-      where: { id },
+      where: { id: numericId },
       select: { image: true }
     });
-    
+
     if (!product) {
-      console.log(`Product not found with ID: ${id}`);
+      console.log(`Product not found with ID: ${numericId}`);
       return NextResponse.json(
         { message: "Product not found" },
         { status: 404 }

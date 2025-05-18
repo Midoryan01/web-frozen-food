@@ -22,10 +22,10 @@ export async function GET() {
 // POST kategori baru
 export async function POST(request: NextRequest) {
   try {
-    const formData = await request.formData();
+    const body = await request.json();
 
-    const name = formData.get('name')?.toString();
-    const description = formData.get('description')?.toString() || null;
+    const name = body.name?.toString();
+    const description = body.description?.toString() || null;
 
     // Validasi input
     if (!name) {

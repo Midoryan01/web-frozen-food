@@ -2,21 +2,36 @@ import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { NextRequest } from 'next/server';
 
+
 const prisma = new PrismaClient();
 
 // GET category by ID
-export async function GET(request: NextRequest, context: { params: { id: string } }) {
+export async function GET(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
-    const id = parseInt(context.params.id);
+    const { id } = await context.params;
+    const numericId = Number(id);
 
-    if (isNaN(id)) {
+    if (isNaN(numericId)) {
       return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
     }
 
     const category = await prisma.category.findUnique({
-      where: { id },
+      where: { id: numericId },
       include: {
-        products: true, // Include related products
+        products: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            sellPrice: true,
+            stock: true,
+            supplier: true,
+            sku: true,
+          }
+        },
       },
     });
 
@@ -24,31 +39,67 @@ export async function GET(request: NextRequest, context: { params: { id: string 
       return NextResponse.json({ error: 'Category not found' }, { status: 404 });
     }
 
-    return NextResponse.json(category);
+    // Transform the data to ensure proper formatting
+    const transformedCategory = {
+      id: category.id,
+      name: category.name,
+      description: category.description,
+      createdAt: category.createdAt,
+      updatedAt: category.updatedAt,
+      products: category.products.map(product => ({
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        sellPrice: product.sellPrice,
+        stock: product.stock,
+        supplier: product.supplier,
+        sku: product.sku,
+      }))
+    };
+
+    return NextResponse.json(transformedCategory);
   } catch (error) {
     console.error('Error fetching category:', error);
     return NextResponse.json({ error: 'Failed to fetch category' }, { status: 500 });
   }
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { name, description } = await req.json();
+  
   try {
-    const id = parseInt(params.id);
-    if (isNaN(id)) {
-      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
+    const categoryId = parseInt((await params).id);
+    if (isNaN(categoryId)) {
+      return NextResponse.json({ error: 'Invalid category ID' }, { status: 400 });
     }
 
-    const body = await request.json(); // Pastikan kirim JSON seperti di atas
+    // Validasi input minimal (sesuai kebutuhan)
+    if (!name && !description) {
+      return NextResponse.json(
+        { error: 'At least one of name or description is required' },
+        { status: 400 }
+      );
+    }
 
+    // Mencari category yang akan diupdate
+    const existingCategory = await prisma.category.findUnique({
+      where: { id: categoryId },
+    });
+
+    if (!existingCategory) {
+      return NextResponse.json({ error: 'Category not found' }, { status: 404 });
+    }
+
+    // Update category
     const updatedCategory = await prisma.category.update({
-      where: { id },
+      where: { id: categoryId },
       data: {
-        name: body.name,
-        description: body.description,
+        name: name || existingCategory.name,
+        description: description || existingCategory.description,
       },
     });
 
-    return NextResponse.json(updatedCategory);
+    return NextResponse.json(updatedCategory, { status: 200 });
   } catch (error: any) {
     console.error('Error updating category:', error);
 
@@ -61,16 +112,19 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 }
 
 // DELETE category
-export async function DELETE(request: NextRequest, context: { params: { id: string } }) {
-  try {
-    const id = parseInt(context.params.id);
+export async function DELETE(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id } = await context.params;
 
-    if (isNaN(id)) {
+  try {
+    if (isNaN(Number(id))) {
       return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
     }
 
     await prisma.category.delete({
-      where: { id },
+      where: { id: Number(id) },
     });
 
     return NextResponse.json({ message: 'Category deleted successfully' });

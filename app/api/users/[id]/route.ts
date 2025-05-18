@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import { json } from "stream/consumers";
-import { error } from "console";
+
 
 export async function GET(
   req: NextRequest,
