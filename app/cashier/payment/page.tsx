@@ -1,33 +1,23 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react'; // useMemo tidak digunakan lagi, bisa dihapus jika tidak dipakai di tempat lain
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { CreditCard, ShoppingBag, ArrowLeft, CheckCircle, Printer, DollarSign, QrCode, Info } from 'lucide-react';
+import LoadingSpinner from '../component/LoadingSpinner'; 
 
-// Asumsi LoadingSpinner sudah ada atau dibuat di path yang benar
-// import LoadingSpinner from '../component/LoadingSpinner';
-const LoadingSpinner = () => (
-    <div className="flex justify-center items-center h-full">
-      <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-sky-500"></div>
-    </div>
-);
-
-// Tipe data (diasumsikan sama)
+// Tipe data
 interface Category { id: number; name: string; }
-interface Product { id: number; name: string; sellPrice: number; imageUrl?: string | null; category?: Category | null; stock: number; /* Tambah stock di Product */ }
+interface Product { id: number; name: string; sellPrice: number; imageUrl?: string | null; category?: Category | null; stock: number; }
 interface CartItem extends Product { quantity: number; }
-
-// Tipe untuk detail transaksi terakhir (untuk struk)
 interface TransactionDetails {
-  orderId: string; // Akan disimulasikan
+  orderId: string;
   transactionDate: Date;
   items: CartItem[];
   totalAmount: number;
   paymentMethod: string;
   cashReceived?: number;
   changeGiven?: number;
-  // customerName?: string;
 }
 
 export default function PaymentPage() {
@@ -35,8 +25,8 @@ export default function PaymentPage() {
   const [totalAmount, setTotalAmount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [paymentMethod, setPaymentMethod] = useState<string>('');
-  const [paymentStatus, setPaymentStatus] = useState<string>(''); // 'pending', 'processing', 'success', 'failed'
-  const [cashReceived, setCashReceived] = useState<string>(''); // String untuk input, akan di-parse
+  const [paymentStatus, setPaymentStatus] = useState<string>('');
+  const [cashReceived, setCashReceived] = useState<string>('');
   const [changeGiven, setChangeGiven] = useState<number>(0);
   const [lastTransactionDetails, setLastTransactionDetails] = useState<TransactionDetails | null>(null);
 
@@ -47,11 +37,10 @@ export default function PaymentPage() {
     const storedTotal = localStorage.getItem('frozenFoodCartTotal');
     if (storedCart && storedTotal) {
       const parsedCart: CartItem[] = JSON.parse(storedCart);
-      // Pastikan sellPrice adalah number
       const validatedCart = parsedCart.map(item => ({
         ...item,
         sellPrice: Number(item.sellPrice),
-        stock: Number(item.stock || 0) // Pastikan stock juga number
+        stock: Number(item.stock || 0)
       }));
       setCartItems(validatedCart);
       setTotalAmount(parseFloat(storedTotal));
@@ -64,9 +53,9 @@ export default function PaymentPage() {
 
   const handlePaymentMethodChange = (method: string) => {
     setPaymentMethod(method);
-    setCashReceived(''); // Reset input cash jika metode berubah
+    setCashReceived('');
     setChangeGiven(0);
-    setPaymentStatus(''); // Reset status jika metode pembayaran diubah
+    setPaymentStatus('');
   };
 
   useEffect(() => {
@@ -81,7 +70,6 @@ export default function PaymentPage() {
       setChangeGiven(0);
     }
   }, [cashReceived, totalAmount, paymentMethod]);
-
 
   const handleSubmitOrder = async () => {
     if (!paymentMethod) {
@@ -98,44 +86,26 @@ export default function PaymentPage() {
     }
 
     setPaymentStatus('processing');
-
-    const orderDataForBackend = {
-      items: cartItems.map(item => ({
-        productId: item.id,
-        quantity: item.quantity,
-        sellPrice: item.sellPrice,
-      })),
-      totalAmount: totalAmount,
-      paymentMethod: paymentMethod,
-      // ...(paymentMethod === 'CASH' && { cashReceived: parseFloat(cashReceived), changeGiven }), // Kirim info cash jika metode tunai
-      // customerName, cashierId, etc.
-    };
-    console.log("Order Data to be sent to backend:", orderDataForBackend);
-
+    // ... (logika console.log dan try-catch untuk simulasi backend tetap sama) ...
     try {
-      // --- SIMULASI ATAU INTEGRASI BACKEND NYATA ---
-      // const response = await fetch('/api/orders', { method: 'POST', ... });
-      // if (!response.ok) throw new Error('Gagal membuat pesanan.');
-      // const orderResult = await response.json();
+        await new Promise(resolve => setTimeout(resolve, 1500)); // Simulasi delay
 
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulasi delay
-
-      const transactionDetails: TransactionDetails = {
-        orderId: `INV-${Date.now()}`, // ID Order simulasi
-        transactionDate: new Date(),
-        items: cartItems,
-        totalAmount: totalAmount,
-        paymentMethod: paymentMethod,
-        ...(paymentMethod === 'CASH' && { cashReceived: parseFloat(cashReceived), changeGiven }),
-      };
-      setLastTransactionDetails(transactionDetails);
-      setPaymentStatus('success');
-      localStorage.removeItem('frozenFoodCart');
-      localStorage.removeItem('frozenFoodCartTotal');
+        const transactionDetails: TransactionDetails = {
+            orderId: `INV-${Date.now()}`,
+            transactionDate: new Date(),
+            items: cartItems,
+            totalAmount: totalAmount,
+            paymentMethod: paymentMethod,
+            ...(paymentMethod === 'CASH' && { cashReceived: parseFloat(cashReceived), changeGiven }),
+        };
+        setLastTransactionDetails(transactionDetails);
+        setPaymentStatus('success');
+        localStorage.removeItem('frozenFoodCart');
+        localStorage.removeItem('frozenFoodCartTotal');
     } catch (err: any) {
-      console.error("Error submitting order:", err);
-      setPaymentStatus('failed');
-      alert(`Gagal memproses pesanan: ${err.message}`);
+        console.error("Error submitting order:", err);
+        setPaymentStatus('failed');
+        alert(`Gagal memproses pesanan: ${err.message}`);
     }
   };
 
@@ -159,7 +129,6 @@ export default function PaymentPage() {
       </header>
 
       <main className="container mx-auto max-w-3xl bg-white p-6 sm:p-8 rounded-xl shadow-2xl border border-slate-200">
-        {/* ... (Bagian Ringkasan Pesanan tetap sama) ... */}
         <section className="mb-8">
             <h2 className="text-xl font-semibold text-slate-700 mb-4 flex items-center gap-2">
             <ShoppingBag size={22} /> Ringkasan Pesanan
@@ -207,7 +176,6 @@ export default function PaymentPage() {
           </div>
         </section>
 
-        {/* UI Dinamis berdasarkan Metode Pembayaran */}
         {paymentMethod === 'CASH' && (
           <section className="mb-8 p-4 bg-sky-50 border border-sky-200 rounded-lg">
             <h3 className="text-lg font-semibold text-sky-700 mb-3">Pembayaran Tunai</h3>
@@ -241,7 +209,6 @@ export default function PaymentPage() {
           <section className="mb-8 p-4 bg-sky-50 border border-sky-200 rounded-lg text-center">
             <h3 className="text-lg font-semibold text-sky-700 mb-3">Pembayaran QRIS</h3>
             <div className="flex flex-col items-center">
-              {/* Ganti dengan komponen QR Code generator atau gambar QRIS Anda */}
               <Image
                 src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SIMULASI_QRIS_DATA_TOTAL_${totalAmount}`}
                 alt="QRIS Code"
@@ -284,121 +251,150 @@ export default function PaymentPage() {
   );
 }
 
-// Komponen untuk Halaman Sukses dan Struk
+// Komponen untuk Halaman Sukses dan Struk (Dengan Perbaikan Cetak & Tampilan Struk)
 const SuccessAndReceiptView = ({ details }: { details: TransactionDetails }) => {
   const router = useRouter();
 
   const handlePrint = () => {
-    // Sembunyikan elemen yang tidak ingin dicetak, lalu panggil window.print()
-    // Cara sederhana: print seluruh halaman, tapi struk didesain untuk print-friendly
-    // Untuk cara lebih canggih, Anda bisa menggunakan CSS @media print
-    const printableArea = document.getElementById('receipt-area');
-    if (printableArea) {
-        const printContents = printableArea.innerHTML;
-        const originalContents = document.body.innerHTML;
-        document.body.innerHTML = printContents;
-        window.print();
-        document.body.innerHTML = originalContents;
-        window.location.reload(); // Reload untuk mengembalikan event listener dll.
-    } else {
-        window.print();
-    }
+    window.print();
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-green-50 p-4 sm:p-6 text-center">
-      <CheckCircle className="text-green-500 mb-4 sm:mb-6" size={80} />
-      <h1 className="text-2xl sm:text-3xl font-bold text-green-700 mb-3">Pembayaran Berhasil!</h1>
-      <p className="text-slate-600 mb-6 sm:mb-8 max-w-md">
-        Pesanan Anda dengan ID <span className="font-semibold text-green-700">{details.orderId}</span> telah berhasil diproses.
-      </p>
-
-      {/* Area Struk */}
-      <div id="receipt-area" className="bg-white p-6 sm:p-8 rounded-lg shadow-xl border border-slate-200 w-full max-w-md text-left mb-6 printable-area">
-        <h2 className="text-xl font-semibold text-center text-slate-800 mb-4 border-b pb-2">Struk Pembayaran</h2>
-        <div className="text-xs text-slate-600 mb-3">
-          <p><strong>ID Pesanan:</strong> {details.orderId}</p>
-          <p><strong>Tanggal:</strong> {new Date(details.transactionDate).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</p>
-          {/* <p><strong>Pelanggan:</strong> {details.customerName || 'Pelanggan Umum'}</p> */}
-          <p><strong>Metode Pembayaran:</strong> {details.paymentMethod}</p>
+    <>
+      {/* Bagian ini hanya untuk tampilan layar */}
+      <div className="min-h-screen flex flex-col items-center justify-center bg-green-50 p-4 sm:p-6 text-center">
+        <CheckCircle className="text-green-500 mb-4 sm:mb-6" size={80} />
+        <h1 className="text-2xl sm:text-3xl font-bold text-green-700 mb-3">Pembayaran Berhasil!</h1>
+        <p className="text-slate-600 mb-6 sm:mb-8 max-w-md">
+          Pesanan Anda dengan ID <span className="font-semibold text-green-700">{details.orderId}</span> telah berhasil diproses.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3">
+            <button
+                onClick={handlePrint}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-6 rounded-lg transition-colors text-base flex items-center justify-center gap-2"
+            >
+                <Printer size={18}/> Cetak Struk
+            </button>
+            <button
+                onClick={() => router.push('/cashier')}
+                className="bg-slate-600 hover:bg-slate-700 text-white font-semibold py-2.5 px-6 rounded-lg transition-colors text-base"
+            >
+                Transaksi Baru
+            </button>
         </div>
-        <table className="w-full text-xs mb-3">
-          <thead>
-            <tr className="border-b border-slate-300">
-              <th className="text-left py-1 pr-1 font-semibold text-slate-700">Produk</th>
-              <th className="text-right py-1 px-1 font-semibold text-slate-700">Qty</th>
-              <th className="text-right py-1 px-1 font-semibold text-slate-700">Harga</th>
-              <th className="text-right py-1 pl-1 font-semibold text-slate-700">Subtotal</th>
-            </tr>
-          </thead>
+      </div>
+
+      {/* Area Struk: Disembunyikan di layar (hidden), ditampilkan saat print (print:block) */}
+      {/* Styling untuk tampilan minimarket sekarang sepenuhnya diatur oleh @media print */}
+      <div 
+        id="receipt-print-area" 
+        className="hidden print:block" // Penting: Sembunyikan di layar, tampilkan saat print
+      >
+        {/* Konten struk tetap sama persis seperti sebelumnya */}
+        <h2 className="text-lg font-bold text-center text-black mb-2 pt-2"> {/* Ukuran font untuk print diatur di CSS */}
+            STRUK PEMBAYARAN
+        </h2>
+        <div className="text-black mb-2 space-y-0 leading-tight">
+          <p><strong>ID Pesanan:</strong> {details.orderId}</p>
+          <p><strong>Tanggal:</strong> {new Date(details.transactionDate).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+          <p><strong>Metode Bayar:</strong> {details.paymentMethod}</p>
+          <p className="mt-1 border-t border-dashed border-black pt-1 text-center font-semibold">[Nama Toko Anda]</p>
+        </div>
+        <hr className="border-dashed border-black my-1" />
+        <table className="w-full mb-1">
           <tbody>
             {details.items.map(item => (
-              <tr key={item.id} className="border-b border-slate-100">
-                <td className="py-1 pr-1 text-slate-700">{item.name}</td>
-                <td className="text-right py-1 px-1 text-slate-700">{item.quantity}</td>
-                <td className="text-right py-1 px-1 text-slate-700">Rp{item.sellPrice.toLocaleString('id-ID')}</td>
-                <td className="text-right py-1 pl-1 text-slate-700">Rp{(item.sellPrice * item.quantity).toLocaleString('id-ID')}</td>
+              <tr key={item.id}>
+                <td colSpan={4} className="pt-0.5 text-black break-words">{item.name}</td>
+              </tr>
+            ))}
+            {details.items.map(item => (
+              <tr key={`${item.id}-harga`} className="align-top">
+                <td className="text-left py-0 pr-1 text-black">{item.quantity}x</td>
+                <td className="text-left py-0 px-1 text-black">@{item.sellPrice.toLocaleString('id-ID')}</td>
+                <td colSpan={2} className="text-right py-0 pl-1 text-black font-medium">{(item.sellPrice * item.quantity).toLocaleString('id-ID')}</td>
               </tr>
             ))}
           </tbody>
         </table>
-        <div className="mt-4 pt-2 border-t border-slate-300 text-sm">
-          <div className="flex justify-between font-semibold text-slate-800">
-            <span>Total Belanja:</span>
+        <hr className="border-dashed border-black my-1" />
+        <div className="mt-1 pt-0">
+          <div className="flex justify-between font-semibold text-black mb-0.5">
+            <span>TOTAL :</span>
             <span>Rp{details.totalAmount.toLocaleString('id-ID')}</span>
           </div>
           {details.paymentMethod === 'CASH' && typeof details.cashReceived === 'number' && (
             <>
-              <div className="flex justify-between mt-1">
-                <span className="text-slate-600">Tunai Diterima:</span>
-                <span className="text-slate-600">Rp{details.cashReceived.toLocaleString('id-ID')}</span>
+              <div className="flex justify-between mt-0.5">
+                <span className="text-black">TUNAI :</span>
+                <span className="text-black">Rp{details.cashReceived.toLocaleString('id-ID')}</span>
               </div>
-              <div className="flex justify-between font-semibold text-green-600">
-                <span>Kembalian:</span>
+              <div className="flex justify-between font-semibold text-black">
+                <span>KEMBALI :</span>
                 <span>Rp{(details.changeGiven ?? 0).toLocaleString('id-ID')}</span>
               </div>
             </>
           )}
-          <p className="text-center text-xs text-slate-500 mt-4">Terima kasih telah berbelanja!</p>
+          <p className="text-center text-black mt-2 pt-1 border-t border-dashed border-gray-400">
+            Terima Kasih!
+          </p>
+          <p className="text-center text-xs text-slate-500 mt-0.5">Layanan Pelanggan: [No. WhatsApp]</p>
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        <button
-            onClick={handlePrint}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-6 rounded-lg transition-colors text-base flex items-center justify-center gap-2"
-        >
-            <Printer size={18}/> Cetak Struk
-        </button>
-        <button
-            onClick={() => router.push('/cashier')}
-            className="bg-slate-600 hover:bg-slate-700 text-white font-semibold py-2.5 px-6 rounded-lg transition-colors text-base"
-        >
-            Transaksi Baru
-        </button>
-      </div>
-
-      {/* CSS untuk menyembunyikan elemen non-struk saat mencetak */}
+      {/* CSS Global untuk @media print */}
       <style jsx global>{`
         @media print {
-          body * {
-            visibility: hidden;
+          body {
+            margin: 0mm !important;
+            padding: 0mm !important;
+            background-color: white !important;
+            -webkit-print-color-adjust: exact !important;
+            color-adjust: exact !important;
           }
-          #receipt-area, #receipt-area * {
-            visibility: visible;
+          /* Sembunyikan semua elemen di body secara default saat print */
+          body > * {
+            display: none !important;
           }
-          #receipt-area {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            margin: 0;
-            padding: 10px; /* Sesuaikan padding untuk cetak */
-            border: none;
-            box-shadow: none;
+          /* Tampilkan hanya area struk dan pastikan parent-nya juga visible jika diperlukan */
+          /* Jika #receipt-print-area adalah child langsung dari body setelah penyembunyian, ini cukup */
+          #receipt-print-area {
+            display: block !important; /* Memastikan elemen ini ditampilkan */
+            visibility: visible !important;
+            position: static !important; /* Biarkan flow normal di kertas, atau 'absolute' jika perlu takeover penuh */
+            width: 72mm !important;     /* Atur lebar struk thermal, sesuaikan! */
+            max-width: 72mm !important;
+            margin: 0 auto !important;   /* Tengahkan jika kertas lebih lebar */
+            padding: 2mm !important;     /* Padding konten struk */
+            font-family: 'Consolas', 'Courier New', Courier, monospace !important;
+            font-size: 8pt !important;   /* Ukuran font struk */
+            line-height: 1.25 !important; /* Kerapatan baris */
+            color: black !important;
+            background-color: white !important;
+            border: none !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+          }
+          /* Pastikan semua anak elemen dari struk juga visible dan mewarisi style dasar */
+          #receipt-print-area * {
+            visibility: visible !important;
+            color: black !important;
+            background-color: transparent !important;
+            font-size: inherit !important;
+            font-family: inherit !important;
+            line-height: inherit !important;
+          }
+          #receipt-print-area h2 { /* Spesifik untuk judul struk saat print */
+             font-size: 10pt !important;
+             font-weight: bold !important;
+             margin-bottom: 1.5mm !important;
+          }
+          /* Hilangkan gambar pada struk jika tidak diperlukan */
+          #receipt-print-area img {
+            display: none !important;
           }
         }
       `}</style>
-    </div>
+    </>
   );
 };
