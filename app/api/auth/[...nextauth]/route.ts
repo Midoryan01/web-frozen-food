@@ -42,7 +42,7 @@ export const authOptions: NextAuthOptions = {
         if (!isValid) return null;
 
         return {
-          id: user.id,
+          id: String(user.id),
           username: user.username,
           role: user.role,
         };
