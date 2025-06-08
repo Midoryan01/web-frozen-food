@@ -1,50 +1,45 @@
 // app/dashboard/types.ts
 
+// --- TIPE DATA (berdasarkan skema Prisma Anda) ---
 export interface Category {
   id: number;
   name: string;
   description?: string | null;
-  createdAt: string; // ISO string date
-  updatedAt: string; // ISO string date
 }
 
 export interface Product {
   id: number;
   name: string;
   sku?: string | null;
-  buyPrice: number;
-  sellPrice: number;
+  buyPrice: number; 
+  sellPrice: number; 
   stock: number;
   description?: string | null;
-  supplier?: string | null; // Pertimbangkan untuk menjadikannya relasi jika Anda memiliki model Supplier
-  expiryDate: string; // ISO string date
+  supplier?: string | null; 
+  expiryDate: string; 
   imageUrl?: string | null;
   categoryId?: number | null;
   category?: Category | null;
-  createdAt: string; // ISO string date
-  updatedAt: string; // ISO string date
-  // orderItems: OrderItem[]; // Mungkin tidak perlu di-load semua di list produk
-  // stockLogs: StockLog[]; // Mungkin tidak perlu di-load semua di list produk
+  createdAt: string;
+  updatedAt: string;
 }
 
-export interface User { // Hanya field yang mungkin relevan untuk ditampilkan
+export interface User { 
   id: number;
   username: string;
   fullName: string;
-  role: string; // 'ADMIN' | 'KASIR'
+  role: 'ADMIN' | 'KASIR';
+  isActive: boolean;
+  createdAt: string;
 }
 
 export interface OrderItem {
   id: number;
-  orderId: number;
   productId: number;
-  product: Pick<Product, 'id' | 'name' | 'sku' | 'imageUrl'>; // Hanya ambil field produk yang relevan untuk item pesanan
+  product: Pick<Product, 'name' | 'sku' | 'buyPrice'>; 
   quantity: number;
-  buyPrice: number; // Harga beli saat transaksi
-  sellPrice: number; // Harga jual saat transaksi
+  sellPrice: number; 
   subtotal: number;
-  createdAt: string;
-  updatedAt: string;
 }
 
 export interface Order {
@@ -52,48 +47,46 @@ export interface Order {
   orderNumber: string;
   customerName?: string | null;
   cashierId: number;
-  cashier: Pick<User, 'id' | 'fullName' | 'username'>; // Hanya ambil field kasir yang relevan
-  orderDate: string; // ISO string date
-  status: 'PENDING' | 'COMPLETED' | 'CANCELLED'; // Sesuai enum OrderStatus Anda
-  totalAmount: number;
-  amountPaid?: number | null;
-  changeAmount?: number | null;
+  cashier: User; 
+  orderDate: string; 
+  status: 'PENDING' | 'COMPLETED' | 'CANCELLED'; 
+  totalAmount: number; 
   paymentMethod: string;
   items: OrderItem[];
   createdAt: string;
   updatedAt: string;
 }
 
-// Tipe untuk data grafik
-export interface SalesDataPoint {
-  date: string; // Format YYYY-MM-DD atau label lainnya
-  totalSales: number;
+export interface StockLog {
+    id: number;
+    product: Pick<Product, 'name' | 'sku'>;
+    quantity: number; 
+    type: 'PURCHASE' | 'SALE' | 'ADJUSTMENT' | 'SPOILAGE' | 'RETURN_CUSTOMER' | 'RETURN_SUPPLIER';
+    user: Pick<User, 'fullName'>;
+    notes?: string | null;
+    createdAt: string;
+}
+
+export interface ApiResponse<T> { 
+  data: T; 
+  message?: string;
+  meta?: any; // Untuk paginasi jika ada
+}
+
+export interface SalesDataPoint { 
+  date: string; 
+  totalSales: number; 
 }
 
 export interface TopProductDataPoint {
-  id: number; // ID Produk
-  name: string;
-  quantitySold: number;
-  totalRevenue: number; // Mungkin juga ingin menampilkan pendapatan dari produk ini
+  id: string; 
+  name: string; 
+  quantitySold: number; 
 }
 
-// Tipe untuk ringkasan data dashboard secara keseluruhan
-export interface DashboardSummaryData {
+export type DashboardViewProps = {
+  salesSummary: SalesDataPoint[];
+  topProducts: TopProductDataPoint[];
   totalRevenue: number;
-  totalOrders: number;
-  totalProductsSold: number;
-  activeCustomers?: number; // Opsional
-  lowStockItemsCount?: number; // Opsional
-}
-
-// Tipe untuk respons API umum (jika API Anda memiliki struktur standar)
-export interface ApiResponse<T> {
-  data: T;
-  message?: string;
-  meta?: { // Untuk paginasi
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
-}
+  totalTransactions: number;
+};
