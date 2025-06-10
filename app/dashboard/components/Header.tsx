@@ -1,9 +1,11 @@
 "use client"; 
 import React from 'react';
-import { Users, LogOut } from 'lucide-react';
+import { Users, LogOut, Store } from 'lucide-react'; // Impor ikon Store
 import { signOut } from 'next-auth/react';
+import Link from 'next/link'; // Impor komponen Link
 
 interface HeaderProps {
+    // Prop ini akan menerima nama lengkap (fullName) dari pengguna yang login
     userName: string;
 }
 
@@ -16,18 +18,32 @@ const Header: React.FC<HeaderProps> = ({ userName }) => {
 
     return (
         <header className="bg-white shadow-md p-4 flex justify-between items-center print:hidden sticky top-0 z-40">
+            
             <h2 className="text-lg sm:text-xl font-semibold text-slate-700">Selamat Datang, {userName}!</h2>
-            <div className="flex items-center gap-2">
-                <button className="p-2 rounded-full hover:bg-slate-200 transition-colors" title="Profil">
-                    <Users className="h-5 w-5 sm:h-6 sm:w-6 text-slate-600" />
-                </button>
-                <button 
-                    onClick={handleSignOut}
-                    className="p-2 rounded-full hover:bg-red-100 text-red-600 transition-colors"
-                    title="Logout"
+            
+            <div className="flex items-center gap-4">
+                {/* Tombol Baru untuk ke Halaman Kasir */}
+                <Link 
+                    href="/cashier" 
+                    className="flex items-center gap-2 bg-sky-600 text-white px-4 py-2 rounded-lg hover:bg-sky-700 transition-colors text-sm font-medium shadow-sm"
                 >
-                    <LogOut className="h-5 w-5 sm:h-6 sm:w-6" />
-                </button>
+                    <Store size={18} />
+                    <span className="hidden sm:inline">Buka Kasir</span>
+                </Link>
+
+                {/* Ikon Pengguna dan Logout */}
+                <div className="flex items-center gap-2">
+                    <button className="p-2 rounded-full hover:bg-slate-200 transition-colors" title="Profil">
+                        <Users className="h-5 w-5 sm:h-6 sm:w-6 text-slate-600" />
+                    </button>
+                    <button 
+                        onClick={handleSignOut}
+                        className="p-2 rounded-full hover:bg-red-100 text-red-600 transition-colors"
+                        title="Logout"
+                    >
+                        <LogOut className="h-5 w-5 sm:h-6 sm:w-6" />
+                    </button>
+                </div>
             </div>
         </header>
     );

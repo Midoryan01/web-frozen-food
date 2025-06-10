@@ -58,7 +58,7 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ initialUsers, r
         if(window.confirm('Apakah Anda yakin ingin menghapus pengguna ini?')) {
             // Logika untuk menghapus user via API
             alert(`Placeholder: Menghapus user dengan ID ${userId}`);
-            await refreshUsers(); // Refresh data setelah aksi
+            await refreshUsers(); 
         }
     };
 
@@ -97,8 +97,8 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ initialUsers, r
                      <label htmlFor="filterStatus" className="block text-xs font-medium text-slate-600 mb-1">Filter Status</label>
                      <select id="filterStatus" value={filterStatus} onChange={e => setFilterStatus(e.target.value as any)} className="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white">
                         <option value="">Semua Status</option>
-                        <option value="true">Aktif</option>
-                        <option value="false">Non-Aktif</option>
+                        <option value="1">Aktif</option>
+                        <option value="2">Non-Aktif</option>
                      </select>
                 </div>
             </div>

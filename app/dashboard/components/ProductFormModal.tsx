@@ -215,12 +215,12 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, categories
               <label htmlFor="categoryId" className="block text-sm font-medium text-slate-700 mb-1">Kategori</label>
               <select name="categoryId" id="categoryId" value={formData.categoryId} onChange={handleChange} className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 bg-white transition-shadow">
                 <option value="">Pilih Kategori</option>
-                <option value="1">1. Daging Beku</option>
+                {/* <option value="1">1. Daging Beku</option>
                 <option value="2">2. Seafood Beku</option>
                 <option value="3">3. Sayuran Beku</option>
                 <option value="4">4. Siap Saji Beku</option>
                 <option value="5">5. Es Krim & Dessert</option>
-                <option value="6">6. Roti & Pastry Beku</option>
+                <option value="6">6. Roti & Pastry Beku</option> */}
                 {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
               </select>
             </div>

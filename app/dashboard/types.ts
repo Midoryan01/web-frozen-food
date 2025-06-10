@@ -34,10 +34,12 @@ export interface User {
 }
 
 export interface OrderItem {
+  [x: string]: any;
   id: number;
   productId: number;
   product: Pick<Product, 'name' | 'sku' | 'buyPrice'>; 
   quantity: number;
+  buyPrice: number;
   sellPrice: number; 
   subtotal: number;
 }
@@ -53,6 +55,7 @@ export interface Order {
   totalAmount: number; 
   paymentMethod: string;
   items: OrderItem[];
+  buyPrice: number;
   createdAt: string;
   updatedAt: string;
 }
