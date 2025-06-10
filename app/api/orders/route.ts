@@ -36,78 +36,81 @@ export async function GET(req: Request) {
   }
 }
 
+// Handler untuk membuat pesanan baru
 export async function POST(request: NextRequest) {
   try {
-    const { customerName, cashierId, items } = await request.json();
+    const { customerName, cashierId, items, totalAmount, paymentMethod, amountPaid, changeAmount } = await request.json();
 
-    if (!cashierId || !items || !Array.isArray(items) || items.length === 0) {
-      return NextResponse.json({ error: "Data tidak valid" }, { status: 400 });
+    // Validasi data input
+    if (!cashierId || !items || !Array.isArray(items) || items.length === 0 || !paymentMethod) {
+      return NextResponse.json({ error: "Data permintaan tidak valid atau tidak lengkap." }, { status: 400 });
     }
 
+    // Memulai transaksi database untuk memastikan konsistensi data
     const newOrder = await prisma.$transaction(async (tx) => {
-      let totalAmount = 0;
-      const orderItems = [];
-
-      for (const item of items) {
-        const product = await tx.product.findUnique({
-          where: { id: item.productId }
-        });
-
-        if (!product) throw new Error(`Product dengan id ${item.productId} tidak ditemukan`);
-
-        const subtotal = product.sellPrice.toNumber() * item.quantity;
-        totalAmount += subtotal;
-
-        orderItems.push({
-          productId: item.productId,
-          quantity: item.quantity,
-          buyPrice: product.buyPrice,
-          sellPrice: product.sellPrice,
-          subtotal: new Decimal(subtotal)
-        });
-      }
-
+      // Langkah 1: Buat entri Order utama
       const order = await tx.order.create({
         data: {
-          customerName: customerName || null,
+          customerName: customerName || 'Walk-in', // Default customer name
           cashierId,
-          status: "PENDING",
+          status: "COMPLETED", // Langsung set status COMPLETED karena pembayaran terjadi saat ini juga
           totalAmount: new Decimal(totalAmount),
-          amountPaid: new Decimal(0), 
-          changeAmount: new Decimal(0), 
-          paymentMethod: "CASH" 
+          amountPaid: new Decimal(amountPaid || 0), 
+          changeAmount: new Decimal(changeAmount || 0), 
+          paymentMethod: paymentMethod,
         }
       });
 
-
-      const orderNumber = `ORD-${order.id.toString().padStart(3, '0')}`;
+      // Langkah 2: Buat nomor pesanan yang mudah dibaca
+      const orderNumber = `ORD-${order.id.toString().padStart(5, '0')}`;
       await tx.order.update({
         where: { id: order.id },
         data: { orderNumber }
       });
 
-      for (const item of orderItems) {
+      // Langkah 3: Iterasi setiap item, buat OrderItem, dan kurangi stok produk
+      for (const item of items) {
+        // Ambil data produk terbaru untuk memastikan harga dan stok akurat
+        const product = await tx.product.findUnique({
+          where: { id: item.productId }
+        });
+
+        if (!product) throw new Error(`Produk dengan ID ${item.productId} tidak ditemukan.`);
+        if (product.stock < item.quantity) throw new Error(`Stok untuk produk "${product.name}" tidak mencukupi.`);
+        
+        // Buat OrderItem
         await tx.orderItem.create({
           data: {
             orderId: order.id,
             productId: item.productId,
             quantity: item.quantity,
-            buyPrice: item.buyPrice,
-            sellPrice: item.sellPrice,
-            subtotal: item.subtotal
+            buyPrice: product.buyPrice,   // Simpan harga beli saat transaksi
+            sellPrice: product.sellPrice, // Simpan harga jual saat transaksi
+            subtotal: new Decimal(product.sellPrice.toNumber() * item.quantity)
           }
+        });
+
+        // Kurangi stok produk
+        await tx.product.update({
+            where: { id: item.productId },
+            data: {
+                stock: {
+                    decrement: item.quantity
+                }
+            }
         });
       }
 
+      // Langkah 4: Kembalikan data pesanan yang sudah lengkap
       return await tx.order.findUnique({
         where: { id: order.id },
-        include: { items: true }
+        include: { items: true } // Sertakan item yang baru dibuat dalam respons
       });
     });
 
     return NextResponse.json(newOrder, { status: 201 });
   } catch (error: any) {
-    console.error("Error creating order:", error);
-    return NextResponse.json({ error: error.message || "Failed to create order" }, { status: 500 });
+    console.error("Gagal membuat pesanan:", error);
+    return NextResponse.json({ error: error.message || "Gagal memproses pesanan di server." }, { status: 500 });
   }
 }

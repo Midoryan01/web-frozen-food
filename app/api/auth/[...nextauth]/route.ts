@@ -1,11 +1,11 @@
-import NextAuth, { NextAuthOptions } from "next-auth";
+
+import NextAuth from "next-auth/next";
+import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import prisma from "@/lib/prisma";
 import { compare } from "bcryptjs";
+import prisma from "@/lib/prisma"; // Pastikan path ini benar
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -14,37 +14,28 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials) {
-          console.log("❌ credentials kosong");
+        if (!credentials?.username || !credentials?.password) {
           return null;
         }
-
-        console.log("📥 credentials:", credentials);
 
         const user = await prisma.user.findUnique({
           where: { username: credentials.username },
         });
 
-        if (!user) {
-          console.log("❌ User tidak ditemukan");
-          return null;
-        }
-
-        if (!user.password) {
-          console.log("❌ User tidak memiliki password");
-          return null;
-        }
+        // Pastikan pengguna ada dan memiliki password
+        if (!user || !user.password) return null;
 
         const isValid = await compare(credentials.password, user.password);
-
-        console.log("🔐 valid password:", isValid);
-
         if (!isValid) return null;
 
+        // Jika berhasil, kembalikan objek yang akan digunakan di token/sesi
+        // Pastikan properti ini cocok dengan tipe User di next-auth.d.ts
         return {
-          id: String(user.id),
-          username: user.username,
+          id: user.id.toString(),
+          name: user.fullName, // Menggunakan fullName sebagai 'name' standar NextAuth
           role: user.role,
+          username: user.username,
+          fullName: user.fullName,
         };
       },
     }),
@@ -58,17 +49,22 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id as any;
-        token.username = user.username;
-        token.role = user.role;
+        // Saat login, pindahkan semua data kustom dari 'user' ke 'token'
+        token.id = user.id;
+        token.role = (user as any).role;
+        token.username = (user as any).username;
+        token.fullName = (user as any).fullName;
+        // 'name' sudah otomatis ditangani oleh NextAuth jika ada di objek user
       }
       return token;
     },
     async session({ session, token }) {
-      if (token && session.user) {
-        session.user.id = token.id as any;
-        session.user.username = token.username as string;
+      // Saat sesi diakses, pindahkan data kustom dari 'token' ke 'session.user'
+      if (session.user) {
+        session.user.id = token.id as string;
         session.user.role = token.role as string;
+        session.user.username = token.username as string;
+        session.user.fullName = token.fullName as string;
       }
       return session;
     },
@@ -77,4 +73,5 @@ export const authOptions: NextAuthOptions = {
 };
 
 const handler = NextAuth(authOptions);
+
 export { handler as GET, handler as POST };
