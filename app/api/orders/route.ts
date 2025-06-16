@@ -36,81 +36,107 @@ export async function GET(req: Request) {
   }
 }
 
-// Handler untuk membuat pesanan baru
 export async function POST(request: NextRequest) {
   try {
-    const { customerName, cashierId, items, totalAmount, paymentMethod, amountPaid, changeAmount } = await request.json();
+    const {
+      customerName,
+      cashierId,
+      items,
+      paymentMethod,
+      amountPaid
+    } = await request.json();
 
-    // Validasi data input
-    if (!cashierId || !items || !Array.isArray(items) || items.length === 0 || !paymentMethod) {
-      return NextResponse.json({ error: "Data permintaan tidak valid atau tidak lengkap." }, { status: 400 });
+    // Validasi input
+    if (!cashierId || !Array.isArray(items) || items.length === 0 || !paymentMethod || !amountPaid) {
+      return NextResponse.json({ error: "Data tidak lengkap." }, { status: 400 });
     }
 
-    // Memulai transaksi database untuk memastikan konsistensi data
+    // Mulai transaksi
     const newOrder = await prisma.$transaction(async (tx) => {
-      // Langkah 1: Buat entri Order utama
+      let totalAmount = new Decimal(0);
+
+      // Hitung total belanja
+      for (const item of items) {
+        const product = await tx.product.findUnique({ where: { id: item.productId } });
+        if (!product) throw new Error(`Produk ID ${item.productId} tidak ditemukan.`);
+        if (product.stock < item.quantity) throw new Error(`Stok tidak cukup untuk produk ${product.name}.`);
+
+        const subtotal = product.sellPrice.mul(new Decimal(item.quantity));
+        totalAmount = totalAmount.add(subtotal);
+      }
+
+      // Hitung kembalian
+      const changeAmount = new Decimal(amountPaid).sub(totalAmount);
+      if (changeAmount.lessThan(0)) throw new Error("Jumlah pembayaran kurang dari total belanja.");
+
+      // Buat Order
       const order = await tx.order.create({
         data: {
-          customerName: customerName || 'Walk-in', // Default customer name
-          cashierId,
-          status: "COMPLETED", // Langsung set status COMPLETED karena pembayaran terjadi saat ini juga
-          totalAmount: new Decimal(totalAmount),
-          amountPaid: new Decimal(amountPaid || 0), 
-          changeAmount: new Decimal(changeAmount || 0), 
-          paymentMethod: paymentMethod,
+          customerName: customerName || "Walk-in",
+          cashierId: parseInt(cashierId),
+          status: "COMPLETED",
+          totalAmount,
+          amountPaid: new Decimal(amountPaid),
+          changeAmount,
+          paymentMethod
         }
       });
 
-      // Langkah 2: Buat nomor pesanan yang mudah dibaca
-      const orderNumber = `ORD-${order.id.toString().padStart(5, '0')}`;
-      await tx.order.update({
-        where: { id: order.id },
-        data: { orderNumber }
-      });
+      // Buat nomor order
+      const orderNumber = `ORD-${order.id.toString().padStart(5, "0")}`;
+      await tx.order.update({ where: { id: order.id }, data: { orderNumber } });
 
-      // Langkah 3: Iterasi setiap item, buat OrderItem, dan kurangi stok produk
+      // Tambahkan OrderItem & StockLog per item
       for (const item of items) {
-        // Ambil data produk terbaru untuk memastikan harga dan stok akurat
-        const product = await tx.product.findUnique({
-          where: { id: item.productId }
-        });
+        const product = await tx.product.findUnique({ where: { id: item.productId } });
+        if (!product) continue;
 
-        if (!product) throw new Error(`Produk dengan ID ${item.productId} tidak ditemukan.`);
-        if (product.stock < item.quantity) throw new Error(`Stok untuk produk "${product.name}" tidak mencukupi.`);
-        
-        // Buat OrderItem
+        const subtotal = product.sellPrice.mul(new Decimal(item.quantity));
+
+        // OrderItem
         await tx.orderItem.create({
           data: {
             orderId: order.id,
-            productId: item.productId,
+            productId: product.id,
             quantity: item.quantity,
-            buyPrice: product.buyPrice,   // Simpan harga beli saat transaksi
-            sellPrice: product.sellPrice, // Simpan harga jual saat transaksi
-            subtotal: new Decimal(product.sellPrice.toNumber() * item.quantity)
+            buyPrice: product.buyPrice,
+            sellPrice: product.sellPrice,
+            subtotal
           }
         });
 
-        // Kurangi stok produk
+        // Update stok produk
         await tx.product.update({
-            where: { id: item.productId },
-            data: {
-                stock: {
-                    decrement: item.quantity
-                }
+          where: { id: product.id },
+          data: {
+            stock: {
+              decrement: item.quantity
             }
+          }
+        });
+
+        // Buat StockLog
+        await tx.stockLog.create({
+          data: {
+            productId: product.id,
+            quantity: -item.quantity,
+            type: "SALE",
+            userId: parseInt(cashierId),
+            buyPrice: product.buyPrice,
+            notes: `Penjualan melalui order #${orderNumber}`
+          }
         });
       }
 
-      // Langkah 4: Kembalikan data pesanan yang sudah lengkap
       return await tx.order.findUnique({
         where: { id: order.id },
-        include: { items: true } // Sertakan item yang baru dibuat dalam respons
+        include: { items: true }
       });
     });
 
     return NextResponse.json(newOrder, { status: 201 });
   } catch (error: any) {
     console.error("Gagal membuat pesanan:", error);
-    return NextResponse.json({ error: error.message || "Gagal memproses pesanan di server." }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Server error." }, { status: 500 });
   }
 }
