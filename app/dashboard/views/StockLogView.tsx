@@ -3,8 +3,10 @@
 import React, { useState, useMemo } from 'react';
 import type { StockLog } from '../types';
 import { RefreshCw, Search, ArrowUpCircle, ArrowDownCircle, FileDown } from 'lucide-react';
-import Script from 'next/script'; // Diperlukan untuk library eksternal
+import Script from 'next/script';
+import PaginationControls from '../components/PaginationControls';
 
+// Deklarasi global untuk library eksternal agar TypeScript tidak error
 declare const XLSX: any;
 
 interface StockLogViewProps {
@@ -14,55 +16,72 @@ interface StockLogViewProps {
 }
 
 const StockLogView: React.FC<StockLogViewProps> = ({ stockLogs, isLoading, fetchStockLogs }) => {
+    // State untuk filter dan pencarian
     const [searchTerm, setSearchTerm] = useState('');
     const [dateRange, setDateRange] = useState<{ start: string, end: string }>({ start: '', end: '' });
     const [changeType, setChangeType] = useState<'in' | 'out' | ''>('');
     const [logType, setLogType] = useState<StockLog['type'] | ''>('');
     
-    // Logika filter tidak diubah
+    // State untuk navigasi
+    const [currentPage, setCurrentPage] = useState(1);
+    // *** PERBAIKAN: Set nilai default ke 10 agar konsisten dengan pilihan yang ada ***
+    const [itemsPerPage, setItemsPerPage] = useState(10);
+
+    // Memoized-logic untuk memfilter log
     const filteredLogs = useMemo(() => {
         if (!Array.isArray(stockLogs)) return [];
-        return stockLogs
-            .filter(log => {
-                const matchesSearch = log.product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                                      (log.product.sku && log.product.sku.toLowerCase().includes(searchTerm.toLowerCase()));
-                
-                const matchesChangeType = changeType === 'in' ? log.quantity > 0 : 
-                                          changeType === 'out' ? log.quantity < 0 : true;
+        
+        return stockLogs.filter(log => {
+            const logDate = new Date(log.createdAt);
+            
+            const matchesSearch = log.product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                  (log.product.sku && log.product.sku.toLowerCase().includes(searchTerm.toLowerCase()));
+            
+            const matchesChangeType = changeType === 'in' ? log.quantity > 0 : 
+                                      changeType === 'out' ? log.quantity < 0 : true;
 
-                const matchesLogType = logType ? log.type === logType : true;
+            const matchesLogType = logType ? log.type === logType : true;
 
-                let matchesDate = true;
-                if (dateRange.start && dateRange.end) {
-                    const logDate = new Date(log.createdAt);
-                    const startDate = new Date(dateRange.start);
-                    const endDate = new Date(dateRange.end);
-                    endDate.setHours(23, 59, 59, 999);
-                    matchesDate = logDate >= startDate && logDate <= endDate;
-                }
+            let matchesDate = true;
+            if (dateRange.start && dateRange.end) {
+                const startDate = new Date(dateRange.start);
+                const endDate = new Date(dateRange.end);
+                endDate.setHours(23, 59, 59, 999); // Set ke akhir hari
+                matchesDate = logDate >= startDate && logDate <= endDate;
+            }
 
-                return matchesSearch && matchesChangeType && matchesLogType && matchesDate;
-            })
-            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            return matchesSearch && matchesChangeType && matchesLogType && matchesDate;
+        }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }, [stockLogs, searchTerm, dateRange, changeType, logType]);
 
+    // Logika untuk memotong data sesuai halaman
+    const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
+    const paginatedLogs = useMemo(() => {
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        return filteredLogs.slice(startIndex, endIndex);
+    }, [filteredLogs, currentPage, itemsPerPage]);
+
+    // Handler untuk mengubah halaman dan item per halaman
+    const onPageChange = (page: number) => {
+        if (page > 0 && page <= totalPages) setCurrentPage(page);
+    };
+    const onItemsPerPageChange = (size: number) => {
+        setItemsPerPage(size);
+        setCurrentPage(1); // Reset ke halaman 1 saat ukuran diubah
+    };
+
+    // Fungsi utilitas untuk styling tipe log
     const getLogTypeStyling = (type: StockLog['type']) => {
         switch(type) {
-            case 'PURCHASE':
-            case 'RETURN_CUSTOMER':
-                return 'bg-blue-100 text-blue-700';
-            case 'SALE':
-            case 'SPOILAGE':
-                return 'bg-red-100 text-red-700';
-            case 'ADJUSTMENT':
-            case 'RETURN_SUPPLIER':
-                return 'bg-yellow-100 text-yellow-700';
-            default:
-                return 'bg-slate-100 text-slate-700';
+            case 'PURCHASE': case 'RETURN_CUSTOMER': return 'bg-blue-100 text-blue-700';
+            case 'SALE': case 'SPOILAGE': return 'bg-red-100 text-red-700';
+            case 'ADJUSTMENT': case 'RETURN_SUPPLIER': return 'bg-yellow-100 text-yellow-700';
+            default: return 'bg-slate-100 text-slate-700';
         }
     }
     
-    // --- FUNGSI UNTUK EKSPOR KE EXCEL ---
+    // Fungsi untuk ekspor ke Excel
     const handleExportToExcel = () => {
         if (typeof XLSX === 'undefined') {
             alert("Library untuk ekspor Excel belum termuat. Silakan coba lagi sebentar.");
@@ -82,18 +101,13 @@ const StockLogView: React.FC<StockLogViewProps> = ({ stockLogs, isLoading, fetch
         const worksheet = XLSX.utils.json_to_sheet(dataToExport);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Log Stok");
-
         const fileName = `Laporan_Log_Stok_${new Date().toISOString().split('T')[0]}.xlsx`;
         XLSX.writeFile(workbook, fileName);
     };
 
     return (
         <>
-            {/* Memuat library xlsx */}
-            <Script
-                src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"
-                strategy="lazyOnload"
-            />
+            <Script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" strategy="lazyOnload" />
             <div className="space-y-6">
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
                     <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Log Stok</h1>
@@ -101,16 +115,12 @@ const StockLogView: React.FC<StockLogViewProps> = ({ stockLogs, isLoading, fetch
                         <button onClick={fetchStockLogs} disabled={isLoading} className="bg-sky-600 text-white px-4 py-2.5 rounded-lg hover:bg-sky-700 transition-colors flex items-center gap-2 text-sm font-medium disabled:opacity-70">
                             <RefreshCw size={16} className={isLoading ? "animate-spin" : ""} /> Refresh Data
                         </button>
-                        <button
-                            onClick={handleExportToExcel}
-                            className="bg-green-600 text-white px-4 py-2.5 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 text-sm font-medium"
-                        >
+                        <button onClick={handleExportToExcel} className="bg-green-600 text-white px-4 py-2.5 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 text-sm font-medium">
                             <FileDown size={16} /> Export Excel
                         </button>
                     </div>
                 </div>
 
-                {/* Area Filter tidak berubah */}
                 <div className="p-4 bg-white rounded-lg shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
                          <label htmlFor="searchProduct" className="block text-xs font-medium text-slate-600 mb-1">Cari Produk</label>
@@ -140,51 +150,62 @@ const StockLogView: React.FC<StockLogViewProps> = ({ stockLogs, isLoading, fetch
                          </select>
                     </div>
                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                            <label htmlFor="startDateLog" className="block text-xs font-medium text-slate-600 mb-1">Dari</label>
-                            <input type="date" id="startDateLog" value={dateRange.start} onChange={e => setDateRange(prev => ({...prev, start: e.target.value}))} className="w-full p-2 border border-slate-300 rounded-lg text-sm"/>
-                        </div>
-                        <div>
-                            <label htmlFor="endDateLog" className="block text-xs font-medium text-slate-600 mb-1">Sampai</label>
-                            <input type="date" id="endDateLog" value={dateRange.end} onChange={e => setDateRange(prev => ({...prev, end: e.target.value}))} className="w-full p-2 border border-slate-300 rounded-lg text-sm"/>
-                        </div>
-                     </div>
+                         <div>
+                             <label htmlFor="startDateLog" className="block text-xs font-medium text-slate-600 mb-1">Dari</label>
+                             <input type="date" id="startDateLog" value={dateRange.start} onChange={e => setDateRange(prev => ({...prev, start: e.target.value}))} className="w-full p-2 border border-slate-300 rounded-lg text-sm"/>
+                         </div>
+                         <div>
+                             <label htmlFor="endDateLog" className="block text-xs font-medium text-slate-600 mb-1">Sampai</label>
+                             <input type="date" id="endDateLog" value={dateRange.end} onChange={e => setDateRange(prev => ({...prev, end: e.target.value}))} className="w-full p-2 border border-slate-300 rounded-lg text-sm"/>
+                         </div>
+                    </div>
                 </div>
 
-                {/* Tabel tidak berubah */}
-                <div className="bg-white rounded-lg shadow-md overflow-x-auto">
-                    <table className="w-full min-w-[800px]">
-                        <thead className="bg-slate-100">
-                            <tr>
-                                <th className="p-3 text-left text-xs font-semibold text-slate-500 uppercase">Tanggal</th>
-                                <th className="p-3 text-left text-xs font-semibold text-slate-500 uppercase">Produk</th>
-                                <th className="p-3 text-right text-xs font-semibold text-slate-500 uppercase">Perubahan</th>
-                                <th className="p-3 text-center text-xs font-semibold text-slate-500 uppercase">Tipe</th>
-                                <th className="p-3 text-left text-xs font-semibold text-slate-500 uppercase">Oleh</th>
-                                <th className="p-3 text-left text-xs font-semibold text-slate-500 uppercase">Catatan</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-200">
-                            {filteredLogs.map(log => (
-                                <tr key={log.id}>
-                                    <td className="p-3 text-sm text-slate-500">{new Date(log.createdAt).toLocaleString('id-ID', {dateStyle:'short', timeStyle:'short'})}</td>
-                                    <td className="p-3 text-sm font-medium text-slate-700">{log.product.name} <span className="text-slate-400">({log.product.sku})</span></td>
-                                    <td className={`p-3 text-sm font-bold text-right flex items-center justify-end gap-1 ${log.quantity > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                        {log.quantity > 0 ? <ArrowUpCircle size={14} /> : <ArrowDownCircle size={14} />}
-                                        {log.quantity > 0 ? `+${log.quantity}` : log.quantity}
-                                    </td>
-                                    <td className="p-3 text-center">
-                                        <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${getLogTypeStyling(log.type)}`}>
-                                            {log.type.replace('_', ' ')}
-                                        </span>
-                                    </td>
-                                    <td className="p-3 text-sm text-slate-500">{log.user.fullName}</td>
-                                    <td className="p-3 text-sm text-slate-500 italic">{log.notes || '-'}</td>
+                {/* *** PERBAIKAN: Menghapus `overflow-hidden` dari div ini *** */}
+                <div className="bg-white rounded-lg shadow-md border border-slate-200">
+                    <div className="overflow-x-auto">
+                        <table className="w-full min-w-[800px]">
+                            <thead className="bg-slate-100">
+                                <tr>
+                                    <th className="p-3 text-left text-xs font-semibold text-slate-500 uppercase">Tanggal</th>
+                                    <th className="p-3 text-left text-xs font-semibold text-slate-500 uppercase">Produk</th>
+                                    <th className="p-3 text-right text-xs font-semibold text-slate-500 uppercase">Perubahan</th>
+                                    <th className="p-3 text-center text-xs font-semibold text-slate-500 uppercase">Tipe</th>
+                                    <th className="p-3 text-left text-xs font-semibold text-slate-500 uppercase">Oleh</th>
+                                    <th className="p-3 text-left text-xs font-semibold text-slate-500 uppercase">Catatan</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                     {filteredLogs.length === 0 && <p className="text-center text-slate-500 py-10">Tidak ada log stok ditemukan sesuai filter.</p>}
+                            </thead>
+                            <tbody className="divide-y divide-slate-200">
+                                {paginatedLogs.map(log => (
+                                    <tr key={log.id}>
+                                        <td className="p-3 text-sm text-slate-500">{new Date(log.createdAt).toLocaleString('id-ID', {dateStyle:'short', timeStyle:'short'})}</td>
+                                        <td className="p-3 text-sm font-medium text-slate-700">{log.product.name} <span className="text-slate-400">({log.product.sku})</span></td>
+                                        <td className={`p-3 text-sm font-bold text-right flex items-center justify-end gap-1 ${log.quantity > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                            {log.quantity > 0 ? <ArrowUpCircle size={14} /> : <ArrowDownCircle size={14} />}
+                                            {log.quantity > 0 ? `+${log.quantity}` : log.quantity}
+                                        </td>
+                                        <td className="p-3 text-center">
+                                            <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${getLogTypeStyling(log.type)}`}>
+                                                {log.type.replace('_', ' ')}
+                                            </span>
+                                        </td>
+                                        <td className="p-3 text-sm text-slate-500">{log.user.fullName}</td>
+                                        <td className="p-3 text-sm text-slate-500 italic">{log.notes || '-'}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        {filteredLogs.length === 0 && !isLoading && <p className="text-center text-slate-500 py-10">Tidak ada log stok ditemukan sesuai filter.</p>}
+                    </div>
+                    
+                    <PaginationControls
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={onPageChange}
+                        itemsPerPage={itemsPerPage}
+                        onItemsPerPageChange={onItemsPerPageChange}
+                        totalItems={filteredLogs.length}
+                    />
                 </div>
             </div>
         </>

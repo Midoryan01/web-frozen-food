@@ -93,10 +93,6 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ user, onClose, onSave, ap
                             <option value="ADMIN">Admin</option>
                         </select>
                     </div>
-                    <div className="flex items-center gap-2 pt-2">
-                        <input type="checkbox" name="isActive" id="isActive" checked={formData.isActive} onChange={handleChange} className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500" />
-                        <label htmlFor="isActive" className="text-sm text-slate-700">Akun Aktif</label>
-                    </div>
                     <div className="flex justify-end gap-3 pt-4">
                         <button type="button" onClick={onClose} className="px-5 py-2.5 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg">Batal</button>
                         <button type="submit" disabled={isSubmitting} className="px-5 py-2.5 text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 rounded-lg disabled:bg-slate-300">
