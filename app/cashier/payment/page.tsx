@@ -4,15 +4,15 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { useSession } from 'next-auth/react'; // PENAMBAHAN: Impor useSession untuk data kasir
-import { CreditCard, ShoppingBag, ArrowLeft, DollarSign, QrCode, Info, AlertTriangle, CheckCircle, Printer } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import { CreditCard, ShoppingBag, ArrowLeft, DollarSign, QrCode, Info, AlertTriangle, CheckCircle, Printer, User } from 'lucide-react';
 
-// Impor komponen
+// Asumsi komponen ini ada di path yang benar
 import LoadingSpinner from '../components/LoadingSpinner';
 
-// Tipe Data (bisa juga diimpor dari file terpusat)
+// Tipe Data
 interface CartItem {
-  id: number;
+  id: number; // Ini adalah productId
   name: string;
   sellPrice: number;
   imageUrl?: string | null;
@@ -25,22 +25,20 @@ interface TransactionDetails {
   items: CartItem[];
   totalAmount: number;
   paymentMethod: string;
-  cashierName: string; // PENAMBAHAN: Untuk menyimpan nama kasir
+  cashierName: string;
+  customerName?: string; // Tambahkan customerName ke detail
   cashReceived?: number;
   changeGiven?: number;
 }
 
-// Komponen untuk Halaman Sukses dan Struk (Dengan Perbaikan Cetak)
+// Komponen Sukses dan Struk (Tidak ada perubahan signifikan)
 const SuccessAndReceiptView = ({ details }: { details: TransactionDetails }) => {
   const router = useRouter();
-
-  const handlePrint = () => {
-    window.print();
-  };
+  const handlePrint = () => window.print();
 
   return (
     <>
-      {/* Bagian untuk Tampilan Layar (Tidak ikut tercetak) */}
+      {/* Tampilan Layar */}
       <div className="print:hidden min-h-screen w-full flex flex-col items-center justify-center bg-green-50 p-4 text-center">
         <CheckCircle className="text-green-500 mb-6" size={80} strokeWidth={1.5} />
         <h1 className="text-3xl font-bold text-green-800 mb-3">Pembayaran Berhasil!</h1>
@@ -48,111 +46,76 @@ const SuccessAndReceiptView = ({ details }: { details: TransactionDetails }) => 
           Pesanan Anda dengan ID <span className="font-semibold text-green-700">{details.orderId}</span> telah berhasil diproses.
         </p>
         <div className="flex flex-col sm:flex-row gap-4">
-          <button
-            onClick={handlePrint}
-            className="bg-sky-600 hover:bg-sky-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors text-base flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
-          >
+          <button onClick={handlePrint} className="bg-sky-600 hover:bg-sky-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors text-base flex items-center justify-center gap-2 shadow-md hover:shadow-lg">
             <Printer size={18} /> Cetak Struk
           </button>
-          <button
-            onClick={() => router.replace('/cashier')}
-            className="bg-slate-600 hover:bg-slate-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors text-base shadow-md hover:shadow-lg"
-          >
+          <button onClick={() => router.replace('/cashier')} className="bg-slate-600 hover:bg-slate-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors text-base shadow-md hover:shadow-lg">
             Transaksi Baru
           </button>
         </div>
       </div>
-
-      {/* Area Struk untuk Dicetak (Hanya muncul saat mencetak) */}
+      {/* Area Cetak Struk */}
       <div id="receipt-print-area">
         <div className="receipt-content">
-          <h2 className="title">Struk Pembayaran</h2>
-          {/* Ganti dengan nama toko Anda yang sebenarnya */}
-          <p className="store-name">Frozen Food XYZ</p>
-          <hr />
-          <div className="details">
-            <p><strong>ID:</strong> {details.orderId}</p>
-            <p><strong>Tanggal:</strong> {new Date(details.transactionDate).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
-            <p><strong>Kasir:</strong> {details.cashierName}</p> {/* PENAMBAHAN: Menampilkan nama kasir */}
-          </div>
-          <hr />
-          <table className="items-table">
-            <tbody>
-              {/* PERBAIKAN: Menggabungkan dua loop menjadi satu untuk efisiensi */}
-              {details.items.map(item => (
-                <><tr key={item.id}>
-                  <td colSpan={3} className="item-name">{item.name}</td>
-                </tr><tr key={`${item.id}-price`}>
-                    <td className='price-detail'>{item.quantity}x</td>
-                    <td className='price-detail'>@{item.sellPrice.toLocaleString('id-ID')}</td>
-                    <td className='price-total'>{(item.sellPrice * item.quantity).toLocaleString('id-ID')}</td>
-                  </tr></>
-              ))}
-            </tbody>
-          </table>
-          <hr />
-          <div className="totals">
-            <div className="totals-row total-amount">
-              <span>TOTAL</span>
-              <span>Rp{details.totalAmount.toLocaleString('id-ID')}</span>
+            <h2 className="title">Struk Pembayaran</h2>
+            <p className="store-name">Frozen Food XYZ</p>
+            <hr />
+            <div className="details">
+              <p><strong>ID:</strong> {details.orderId}</p>
+              <p><strong>Tanggal:</strong> {new Date(details.transactionDate).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+              <p><strong>Kasir:</strong> {details.cashierName}</p>
+              {details.customerName && <p><strong>Pelanggan:</strong> {details.customerName}</p>}
             </div>
-            {details.paymentMethod.toUpperCase() === 'CASH' && typeof details.cashReceived === 'number' && (
-              <>
-                <div className="totals-row">
-                  <span>TUNAI</span>
-                  <span>Rp{details.cashReceived.toLocaleString('id-ID')}</span>
-                </div>
-                <div className="totals-row total-change">
-                  <span>KEMBALI</span>
-                  <span>Rp{(details.changeGiven ?? 0).toLocaleString('id-ID')}</span>
-                </div>
-              </>
-            )}
-          </div>
-          <hr />
-          <p className="footer-thanks">Terima Kasih!</p>
-          {/* Ganti dengan kontak Anda yang sebenarnya */}
-          <p className="footer-contact">Layanan Pelanggan: 0812-3456-7890</p>
+            <hr />
+            <table className="items-table">
+              <tbody>
+                {details.items.map(item => (
+                  <><tr key={item.id}>
+                    <td colSpan={3} className="item-name">{item.name}</td>
+                  </tr><tr key={`${item.id}-price`}>
+                      <td className='price-detail'>{item.quantity}x</td>
+                      <td className='price-detail'>@{item.sellPrice.toLocaleString('id-ID')}</td>
+                      <td className='price-total'>{(item.sellPrice * item.quantity).toLocaleString('id-ID')}</td>
+                    </tr></>
+                ))}
+              </tbody>
+            </table>
+            <hr />
+            <div className="totals">
+              <div className="totals-row total-amount">
+                <span>TOTAL</span>
+                <span>Rp{details.totalAmount.toLocaleString('id-ID')}</span>
+              </div>
+              {details.paymentMethod.toUpperCase() === 'CASH' && typeof details.cashReceived === 'number' && (
+                <>
+                  <div className="totals-row">
+                    <span>TUNAI</span>
+                    <span>Rp{details.cashReceived.toLocaleString('id-ID')}</span>
+                  </div>
+                  <div className="totals-row total-change">
+                    <span>KEMBALI</span>
+                    <span>Rp{(details.changeGiven ?? 0).toLocaleString('id-ID')}</span>
+                  </div>
+                </>
+              )}
+            </div>
+            <hr />
+            <p className="footer-thanks">Terima Kasih!</p>
+            <p className="footer-contact">Layanan Pelanggan: 0812-3456-7890</p>
         </div>
       </div>
 
-      {/* CSS Global untuk Fungsionalitas Cetak */}
+      {/* CSS Global untuk Cetak */}
       <style jsx global>{`
         @media print {
-          body {
-            background: white !important;
-          }
-          body * {
-            visibility: hidden;
-          }
-          #receipt-print-area, #receipt-print-area * {
-            visibility: visible;
-          }
-          #receipt-print-area {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-          }
-          .receipt-content {
-            width: 72mm; /* Lebar standar kertas thermal */
-            max-width: 72mm;
-            margin: 0 auto;
-            padding: 2mm;
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 9pt;
-            color: black;
-            line-height: 1.4;
-          }
-          .receipt-content .title {
-            font-size: 11pt; font-weight: bold; text-align: center; margin-bottom: 2mm;
-          }
-          .receipt-content .store-name {
-            text-align: center; font-weight: bold; margin-bottom: 4mm;
-          }
-          .receipt-content hr {
-            border: none; border-top: 1px dashed black; margin: 3mm 0;
-          }
+          body { background: white !important; }
+          body * { visibility: hidden; }
+          #receipt-print-area, #receipt-print-area * { visibility: visible; }
+          #receipt-print-area { position: absolute; left: 0; top: 0; width: 100%; }
+          .receipt-content { width: 72mm; max-width: 72mm; margin: 0 auto; padding: 2mm; font-family: 'Courier New', Courier, monospace; font-size: 9pt; color: black; line-height: 1.4; }
+          .receipt-content .title { font-size: 11pt; font-weight: bold; text-align: center; margin-bottom: 2mm; }
+          .receipt-content .store-name { text-align: center; font-weight: bold; margin-bottom: 4mm; }
+          .receipt-content hr { border: none; border-top: 1px dashed black; margin: 3mm 0; }
           .receipt-content .details p { margin: 0; line-height: 1.3; }
           .receipt-content .items-table { width: 100%; border-collapse: collapse; }
           .receipt-content .item-name { padding-top: 1mm; }
@@ -181,11 +144,11 @@ export default function PaymentPage() {
   const [cashReceived, setCashReceived] = useState<string>('');
   const [changeGiven, setChangeGiven] = useState<number>(0);
   const [lastTransactionDetails, setLastTransactionDetails] = useState<TransactionDetails | null>(null);
+  const [customerName, setCustomerName] = useState<string>(''); // State untuk nama pelanggan
 
   const router = useRouter();
-  const { data: session } = useSession(); // PENAMBAHAN: Mengambil data sesi
+  const { data: session } = useSession();
 
-  // Mengambil data dari localStorage saat komponen dimuat
   useEffect(() => {
     const storedCart = localStorage.getItem('frozenFoodCart');
     const storedTotal = localStorage.getItem('frozenFoodCartTotal');
@@ -194,13 +157,11 @@ export default function PaymentPage() {
       setCartItems(parsedCart);
       setTotalAmount(parseFloat(storedTotal));
     } else {
-      // Jika tidak ada data keranjang, kembali ke halaman kasir
       router.replace('/cashier');
     }
     setIsLoading(false);
   }, [router]);
 
-  // Kalkulasi uang kembalian untuk pembayaran tunai
   useEffect(() => {
     if (paymentMethod.toUpperCase() === 'CASH' && cashReceived) {
       const received = parseFloat(cashReceived);
@@ -221,6 +182,9 @@ export default function PaymentPage() {
     setPaymentStatus('idle');
   };
 
+  /**
+   * Mengirim data pesanan ke API endpoint /api/orders
+   */
   const handleSubmitOrder = async () => {
     const isCashPayment = paymentMethod.toUpperCase() === 'CASH';
     const isCashInvalid = isCashPayment && (parseFloat(cashReceived) < totalAmount || isNaN(parseFloat(cashReceived)));
@@ -230,33 +194,64 @@ export default function PaymentPage() {
     }
 
     setPaymentStatus('processing');
-    try {
-      // Simulasi proses API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      // Di dunia nyata, di sinilah Anda akan mengirim data ke backend API Anda.
-      // Contoh: const response = await fetch('/api/orders', { method: 'POST', body: JSON.stringify(...) });
 
+    // **INTEGRASI API DIMULAI DI SINI**
+
+    // 1. Siapkan payload sesuai dengan struktur yang dibutuhkan API
+    const orderPayload = {
+      customerName: customerName.trim() || "PELANGGAN", // Gunakan state nama pelanggan
+      cashierId: session?.user?.id || 'unknown-cashier', 
+      items: cartItems.map(item => ({
+        productId: item.id,
+        quantity: item.quantity,
+      })),
+      paymentMethod: paymentMethod,
+      amountPaid: isCashPayment ? parseFloat(cashReceived) : totalAmount,
+    };
+
+    try {
+      // 2. Kirim data ke API menggunakan fetch
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(orderPayload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Gagal mengirim pesanan.');
+      }
+
+      const result = await response.json();
+      
+      // 4. Buat detail transaksi untuk ditampilkan di halaman sukses
       const transactionDetails: TransactionDetails = {
-        orderId: `INV-${Date.now()}`,
+        orderId: result.orderId,
         transactionDate: new Date(),
         items: cartItems,
         totalAmount: totalAmount,
         paymentMethod: paymentMethod,
-        cashierName: session?.user?.name || 'Kasir', // PENAMBAHAN: Menggunakan nama dari sesi
+        cashierName: session?.user?.name || 'Kasir',
+        customerName: orderPayload.customerName, // Tambahkan nama pelanggan ke detail
         ...(isCashPayment && { cashReceived: parseFloat(cashReceived), changeGiven }),
       };
 
       setLastTransactionDetails(transactionDetails);
       setPaymentStatus('success');
+      
       localStorage.removeItem('frozenFoodCart');
       localStorage.removeItem('frozenFoodCartTotal');
+
     } catch (err: any) {
       console.error("Error submitting order:", err);
       setPaymentStatus('failed');
     }
+    // **INTEGRASI API BERAKHIR DI SINI**
   };
 
-  // ----- RENDER KONDISIONAL -----
+  // ----- RENDER -----
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-slate-50"><LoadingSpinner /></div>;
   }
@@ -264,8 +259,7 @@ export default function PaymentPage() {
   if (paymentStatus === 'success' && lastTransactionDetails) {
     return <SuccessAndReceiptView details={lastTransactionDetails} />;
   }
-
-  // ----- RENDER HALAMAN UTAMA -----
+  
   const isCashPaymentInvalid = paymentMethod.toUpperCase() === 'CASH' && (parseFloat(cashReceived) < totalAmount || cashReceived === '' || isNaN(parseFloat(cashReceived)));
 
   return (
@@ -283,6 +277,21 @@ export default function PaymentPage() {
         <main className="grid grid-cols-1 md:grid-cols-5 gap-8">
           {/* Kolom Kiri: Detail & Form Pembayaran */}
           <div className="md:col-span-3 bg-white p-6 sm:p-8 rounded-2xl shadow-lg border border-slate-200">
+            {/* PENAMBAHAN: Input Nama Pelanggan */}
+            <section className="mb-6">
+              <label htmlFor="customerName" className="text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
+                <User size={16} /> Nama Pelanggan
+              </label>
+              <input
+                type="text"
+                id="customerName"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                placeholder="cth: Budi (Opsional)"
+                className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-sky-500 focus:border-sky-500"
+              />
+            </section>
+            
             <section className="mb-8">
               <h2 className="text-xl font-semibold text-slate-700 mb-4">Pilih Metode Pembayaran</h2>
               <div className="grid grid-cols-2 gap-3">
@@ -308,7 +317,6 @@ export default function PaymentPage() {
               </div>
             </section>
 
-            {/* PERBAIKAN: Tampilkan area input Tunai HANYA jika metode CASH dipilih */}
             {paymentMethod === 'CASH' && (
               <section className="p-4 bg-sky-50 border border-sky-200 rounded-lg">
                 <h3 className="text-lg font-semibold text-sky-700 mb-3">Pembayaran Tunai</h3>
@@ -330,7 +338,6 @@ export default function PaymentPage() {
               </section>
             )}
 
-            {/* PERBAIKAN: Tampilkan QRIS HANYA jika metode QRIS dipilih */}
             {paymentMethod === 'QRIS' && (
               <section className="p-4 bg-sky-50 border border-sky-200 rounded-lg text-center">
                 <h3 className="text-lg font-semibold text-sky-700 mb-3">Pembayaran QRIS</h3>
@@ -348,14 +355,12 @@ export default function PaymentPage() {
               </section>
             )}
 
-            {/* Placeholder untuk UI Kartu Debit/Kredit jika diperlukan */}
             {(paymentMethod === 'DEBIT CARD' || paymentMethod === 'CREDIT CARD') && (
                 <section className="p-4 bg-sky-50 border border-sky-200 rounded-lg text-center">
                     <Info className="mx-auto text-sky-600 mb-2" size={32} />
                     <p className="text-sm text-slate-700">Silakan gunakan mesin EDC untuk pembayaran dengan kartu.</p>
                 </section>
             )}
-
           </div>
 
           {/* Kolom Kanan: Ringkasan & Total */}
@@ -404,7 +409,7 @@ export default function PaymentPage() {
                 }
               </button>
               {paymentStatus === 'failed' && (
-                <p className="text-red-600 text-center text-sm mt-3 flex items-center justify-center gap-2"><AlertTriangle size={16} />Pembayaran gagal.</p>
+                <p className="text-red-600 text-center text-sm mt-3 flex items-center justify-center gap-2"><AlertTriangle size={16} />Pembayaran gagal. Coba lagi.</p>
               )}
             </div>
           </div>
