@@ -27,14 +27,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { 
-      productId, 
-      quantity, 
-      type, 
-      buyPrice, 
-      userId, 
-      notes 
-    } = await req.json();
+    const { productId, quantity, type, buyPrice, userId, notes } = await req.json();
 
     // Validasi input dasar
     if (!productId || quantity === undefined || !type || !userId) {

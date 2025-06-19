@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
         await tx.stockLog.create({
           data: {
             productId,
-            quantity: -quantity, // Negatif karena barang keluar
+            quantity: -quantity, 
             type: "SALE",
             buyPrice,
             userId: order.cashierId,

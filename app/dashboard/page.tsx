@@ -38,7 +38,7 @@ export default function DashboardPage() {
     const [salesSummary, setSalesSummary] = useState<SalesDataPoint[]>([]);
     const [topProducts, setTopProducts] = useState<TopProductDataPoint[]>([]);
 
-    // --- Fungsi Fetch Data Generik (Tidak ada perubahan) ---
+    // --- Fungsi Fetch Data Generik  ---
     const fetchData = useCallback(
       async <T,>(url: string, setter: React.Dispatch<React.SetStateAction<T>>, dataKey: string = 'data') => {
         setError(null);
@@ -130,7 +130,7 @@ export default function DashboardPage() {
       await fetchData<User[]>('/api/users', setUsers);
     }, [fetchData]);
 
-    // --- Hooks useEffect (Tidak ada perubahan) ---
+    // --- Hooks useEffect  ---
     useEffect(() => {
       if (status === 'loading') return;
       if (!session) router.replace('/login');
@@ -219,8 +219,7 @@ export default function DashboardPage() {
     };
 
     return (
-        // *** PERUBAHAN UTAMA ADA DI SINI ***
-        // Mengganti `min-h-screen` menjadi `h-screen` untuk "mengunci" tinggi layout
+
       <div className="h-screen bg-slate-100 flex overflow-hidden">
         <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} />
         <div className="flex-1 flex flex-col">

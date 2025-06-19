@@ -15,7 +15,6 @@ const selectUserFields = {
 export async function GET(req: Request) {
   try {
     const users = await prisma.user.findMany({
-      // ✅ KEAMANAN: Hanya pilih field yang aman, jangan kirim password hash
       select: selectUserFields,
     });
     return NextResponse.json(users, { status: 200 });
@@ -31,15 +30,12 @@ export async function GET(req: Request) {
 export async function POST(req: NextRequest) {
   try {
     const { username, password, role, fullName } = await req.json();
-
     if (!username || !password || !role) {
       return NextResponse.json(
         { error: "Username, password, and role are required" },
         { status: 400 }
       );
     }
-    
-    // ✅ PENINGKATAN: Cek jika username sudah ada
     const existingUser = await prisma.user.findUnique({
       where: { username },
     });
@@ -47,7 +43,7 @@ export async function POST(req: NextRequest) {
     if (existingUser) {
         return NextResponse.json(
             { error: "Username already exists" },
-            { status: 409 } // 409 Conflict lebih cocok
+            { status: 409 } 
         );
     }
 
@@ -60,7 +56,6 @@ export async function POST(req: NextRequest) {
         role,
         fullName: fullName || "",
       },
-      // ✅ KEAMANAN: Pilih field yang aman untuk dikembalikan
       select: selectUserFields,
     });
 

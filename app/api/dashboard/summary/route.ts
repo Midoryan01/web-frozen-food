@@ -1,5 +1,3 @@
-// app/api/dashboard/summary/route.ts
-
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma'; // Sesuaikan path ke prisma client Anda
 import { startOfDay, endOfDay, subDays } from 'date-fns';

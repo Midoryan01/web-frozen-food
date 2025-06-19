@@ -36,7 +36,7 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ initialUsers, r
     const filteredUsers = useMemo(() => {
         return users.filter(user => {
             const matchesSearch = user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                                  user.username.toLowerCase().includes(searchTerm.toLowerCase());
+                                    user.username.toLowerCase().includes(searchTerm.toLowerCase());
             const matchesRole = filterRole ? user.role === filterRole : true;
             // Pastikan perbandingan status konsisten sebagai string
             const matchesStatus = filterStatus ? String(user.isActive) === filterStatus : true;
@@ -92,8 +92,8 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ initialUsers, r
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
                 <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Manajemen Pengguna</h1>
                 <div className="flex gap-2">
-                     <button onClick={handleRefresh} disabled={isLoadingTable} className="bg-slate-200 text-slate-700 px-4 py-2.5 rounded-lg hover:bg-slate-300 transition-colors flex items-center gap-2 text-sm font-medium disabled:opacity-50">
-                         <RefreshCw size={16} className={isLoadingTable ? "animate-spin" : ""} /> Refresh
+                        <button onClick={handleRefresh} disabled={isLoadingTable} className="bg-slate-200 text-slate-700 px-4 py-2.5 rounded-lg hover:bg-slate-300 transition-colors flex items-center gap-2 text-sm font-medium disabled:opacity-50">
+                            <RefreshCw size={16} className={isLoadingTable ? "animate-spin" : ""} /> Refresh
                     </button>
                     <button onClick={handleAddUser} className="bg-sky-600 text-white px-4 py-2.5 rounded-lg hover:bg-sky-700 transition-colors flex items-center gap-2 text-sm font-medium">
                         <PlusCircle size={18} /> Tambah Pengguna
@@ -104,27 +104,19 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ initialUsers, r
             {/* Filter dan Search Section */}
             <div className="p-4 bg-white rounded-lg shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="md:col-span-1">
-                     <label htmlFor="searchUser" className="block text-xs font-medium text-slate-600 mb-1">Cari Pengguna</label>
-                     <div className="relative">
-                         <input type="text" id="searchUser" placeholder="Nama atau Username..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full p-2 pl-9 border border-slate-300 rounded-lg text-sm"/>
-                         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"/>
-                     </div>
+                    <label htmlFor="searchUser" className="block text-xs font-medium text-slate-600 mb-1">Cari Pengguna</label>
+                    <div className="relative">
+                        <input type="text" id="searchUser" placeholder="Nama atau Username..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full p-2 pl-9 border border-slate-300 rounded-lg text-sm"/>
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"/>
+                    </div>
                 </div>
                 <div>
-                     <label htmlFor="filterRole" className="block text-xs font-medium text-slate-600 mb-1">Filter Role</label>
-                     <select id="filterRole" value={filterRole} onChange={e => setFilterRole(e.target.value as any)} className="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white">
-                         <option value="">Semua Role</option>
-                         <option value="ADMIN">Admin</option>
-                         <option value="KASIR">Kasir</option>
-                     </select>
-                </div>
-                 <div>
-                     <label htmlFor="filterStatus" className="block text-xs font-medium text-slate-600 mb-1">Filter Status</label>
-                     <select id="filterStatus" value={filterStatus} onChange={e => setFilterStatus(e.target.value as any)} className="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white">
-                         <option value="">Semua Status</option>
-                         <option value="true">Aktif</option>
-                         <option value="false">Non-Aktif</option>
-                     </select>
+                    <label htmlFor="filterRole" className="block text-xs font-medium text-slate-600 mb-1">Filter Role</label>
+                    <select id="filterRole" value={filterRole} onChange={e => setFilterRole(e.target.value as any)} className="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white">
+                        <option value="">Semua Role</option>
+                        <option value="ADMIN">Admin</option>
+                        <option value="KASIR">Kasir</option>
+                    </select>
                 </div>
             </div>
 

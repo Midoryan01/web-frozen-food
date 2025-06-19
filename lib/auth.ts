@@ -38,7 +38,6 @@ export const authOptions: NextAuthOptions = {
         }
 
         // Jika semua valid, kembalikan objek user untuk sesi
-        // Pastikan field ini ada di model Prisma dan tipe User di next-auth.d.ts
         return {
           id: user.id.toString(),
           username: user.username,

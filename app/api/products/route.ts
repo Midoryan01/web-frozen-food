@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
     const description = formData.get('description') as string | null;
     const expiryDateStr = formData.get('expiryDate') as string;
     const categoryIdStr = formData.get('categoryId') as string | null;
-    const imageFile = formData.get('image') as File | null; // 'image' adalah nama field dari form
+    const imageFile = formData.get('image') as File | null; 
 
     if (!name || !buyPriceStr || !sellPriceStr || !expiryDateStr) {
       return NextResponse.json(
@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
       sku: sku || undefined,
       buyPrice,
       sellPrice,
-      stock, // Stok awal akan dicatat di StockLog
+      stock, 
       description: description || undefined,
       expiryDate: new Date(expiryDateStr),
       categoryId: categoryId || undefined,
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
       // 1. Buat produk di database (tanpa imageUrl dulu)
       const product = await tx.product.create({
         data: productData,
-        include: { // Include relasi yang mungkin dibutuhkan setelah create
+        include: { 
           category: true,
         },
       });
@@ -181,7 +181,7 @@ export async function POST(request: NextRequest) {
         const updatedProductWithImage = await tx.product.update({
           where: { id: product.id },
           data: { imageUrl: finalImageUrl },
-          include: { // Re-include relasi jika perlu
+          include: { // Re-include relasi 
             category: true,
           },
         });
@@ -194,8 +194,7 @@ export async function POST(request: NextRequest) {
                 quantity: stock,
                 type: 'PURCHASE', // Gunakan enum jika sudah didefinisikan
                 buyPrice: buyPrice,
-                // TODO: Dapatkan userId dari sesi atau token autentikasi
-                userId: 1, // Placeholder, ganti dengan ID user yang login
+                userId: 1, 
                 notes: 'Stok awal produk baru',
             },
             });
@@ -212,7 +211,7 @@ export async function POST(request: NextRequest) {
             quantity: stock,
             type: 'PURCHASE',
             buyPrice: buyPrice,
-            userId: 1, // Placeholder
+            userId: 1, 
             notes: 'Stok awal produk baru (tanpa gambar)',
           },
         });

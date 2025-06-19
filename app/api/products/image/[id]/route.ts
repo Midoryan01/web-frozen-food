@@ -21,7 +21,6 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
 
-    // ... (pengambilan field form data lainnya seperti name, sku, buyPrice, dll. tetap sama)
     const name = formData.get('name') as string;
     const sku = formData.get('sku') as string | null;
     const buyPriceStr = formData.get('buyPrice') as string;
@@ -32,7 +31,6 @@ export async function POST(request: NextRequest) {
     const categoryIdStr = formData.get('categoryId') as string | null;
     const imageFile = formData.get('image') as File | null;
 
-    // ... (validasi field wajib tetap sama) ...
     if (!name || !buyPriceStr || !sellPriceStr || !expiryDateStr) {
       return NextResponse.json(
         { message: 'Nama, harga beli, harga jual, dan tanggal kedaluwarsa wajib diisi.' },
@@ -44,8 +42,6 @@ export async function POST(request: NextRequest) {
     const sellPrice = parseFloat(sellPriceStr);
     const stock = stockStr ? parseInt(stockStr, 10) : 0;
     const categoryId = categoryIdStr ? parseInt(categoryIdStr, 10) : null;
-    // ... (validasi angka lainnya tetap sama) ...
-
 
     const productData: any = {
       name,
@@ -56,7 +52,7 @@ export async function POST(request: NextRequest) {
       description: description || undefined,
       expiryDate: new Date(expiryDateStr),
       categoryId: categoryId || undefined,
-      imageUrl: null, // Default null
+      imageUrl: null, 
     };
 
     const newProduct = await prisma.$transaction(async (tx) => {
@@ -70,8 +66,7 @@ export async function POST(request: NextRequest) {
       let finalImageUrl: string | null = null;
 
       if (imageFile) {
-        // PERUBAHAN DI SINI: Path penyimpanan tidak lagi menggunakan product.id sebagai subfolder
-        const relativeUploadDir = "/images/products"; // Langsung ke folder products
+        const relativeUploadDir = "/images/products"; 
         const uploadDir = path.join(process.cwd(), "public", relativeUploadDir);
 
         await fs.mkdir(uploadDir, { recursive: true }); // Memastikan /public/images/products ada
@@ -79,14 +74,9 @@ export async function POST(request: NextRequest) {
         const originalFilename = sanitizeFilename(imageFile.name);
         const fileExtension = path.extname(originalFilename);
         
-        // Strategi nama file untuk produk baru:
-        // Menggunakan ID produk yang baru dibuat dan SKU (jika ada) untuk keunikan
-        // Ini konsisten dengan strategi di endpoint upload gambar terpisah.
+
         const skuPartForFilename = product.sku ? sanitizeFilename(product.sku) : 'item';
         const uniqueFilename = `product-${product.id}-${skuPartForFilename}${fileExtension}`;
-        // Atau jika Anda ingin tetap menggunakan timestamp seperti di screenshot Anda:
-        // const uniqueFilename = `${Date.now()}-${originalFilename}`;
-
 
         const filePath = path.join(uploadDir, uniqueFilename);
         finalImageUrl = path.join(relativeUploadDir, uniqueFilename).replace(/\\/g, "/");
@@ -109,7 +99,7 @@ export async function POST(request: NextRequest) {
               quantity: stock,
               type: 'PURCHASE',
               buyPrice: buyPrice,
-              userId: 1, // Placeholder
+              userId: 1, 
               notes: 'Stok awal produk baru',
             },
           });
@@ -125,7 +115,7 @@ export async function POST(request: NextRequest) {
             quantity: stock,
             type: 'PURCHASE',
             buyPrice: buyPrice,
-            userId: 1, // Placeholder
+            userId: 1, 
             notes: 'Stok awal produk baru (tanpa gambar)',
           },
         });
@@ -136,7 +126,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(newProduct, { status: 201 });
 
   } catch (error: any) {
-    // ... (blok catch error tetap sama) ...
     console.error('Error creating product:', error);
     if (error.code === 'P2002') {
       const target = error.meta?.target;

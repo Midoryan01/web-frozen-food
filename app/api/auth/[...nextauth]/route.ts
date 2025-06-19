@@ -28,10 +28,9 @@ export const authOptions: NextAuthOptions = {
         if (!isValid) return null;
 
         // Jika berhasil, kembalikan objek yang akan digunakan di token/sesi
-        // Pastikan properti ini cocok dengan tipe User di next-auth.d.ts
         return {
           id: user.id.toString(),
-          name: user.fullName, // Menggunakan fullName sebagai 'name' standar NextAuth
+          name: user.fullName, 
           role: user.role,
           username: user.username,
           fullName: user.fullName,

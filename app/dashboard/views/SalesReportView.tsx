@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { Search, FileDown } from 'lucide-react';
+import { Search, FileDown, Printer } from 'lucide-react'; 
+import { generateSalesReportPDF } from '../../utils/pdfGenerator';
 import type { Order } from '../types';
 import Script from 'next/script';
-import PaginationControls from '../components/PaginationControls'; // 1. Impor komponen
+import PaginationControls from '../components/PaginationControls';
 
 declare const XLSX: any;
 
@@ -13,7 +14,7 @@ const SalesReportView: React.FC<{ orders: Order[] }> = ({ orders }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [dateRange, setDateRange] = useState<{ start: string, end: string }>({ start: '', end: '' });
 
-    // 2. State untuk navigasi
+    // State untuk navigasi
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
 
@@ -28,7 +29,6 @@ const SalesReportView: React.FC<{ orders: Order[] }> = ({ orders }) => {
                 const quantity = Number(item.quantity) || 0;
                 const subtotal = sellPrice * quantity;
                 const profit = (sellPrice - buyPrice) * quantity;
-                
                 return { ...item, buyPrice, sellPrice, subtotal, profit, orderDate: o.orderDate, orderNumber: o.orderNumber };
             }))
             .filter(item => {
@@ -51,7 +51,7 @@ const SalesReportView: React.FC<{ orders: Order[] }> = ({ orders }) => {
             .sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime());
     }, [orders, dateRange, searchTerm]);
     
-    // 3. Logika untuk memotong data sesuai halaman
+    // Logika paginasi
     const totalPages = Math.ceil(filteredSoldItems.length / itemsPerPage);
     const paginatedSoldItems = useMemo(() => {
         const startIndex = (currentPage - 1) * itemsPerPage;
@@ -59,7 +59,6 @@ const SalesReportView: React.FC<{ orders: Order[] }> = ({ orders }) => {
         return filteredSoldItems.slice(startIndex, endIndex);
     }, [filteredSoldItems, currentPage, itemsPerPage]);
 
-    // 4. Handler untuk navigasi
     const onPageChange = (page: number) => {
         if (page > 0 && page <= totalPages) setCurrentPage(page);
     };
@@ -71,6 +70,7 @@ const SalesReportView: React.FC<{ orders: Order[] }> = ({ orders }) => {
     const totalRevenue = filteredSoldItems.reduce((sum, item) => sum + item.subtotal, 0);
     const totalProfit = filteredSoldItems.reduce((sum, item) => sum + item.profit, 0);
 
+    // Fungsi ekspor Excel
     const handleExportToExcel = () => {
         if (typeof XLSX === 'undefined') {
             alert("Library untuk ekspor Excel belum termuat. Silakan coba lagi sebentar.");
@@ -78,14 +78,8 @@ const SalesReportView: React.FC<{ orders: Order[] }> = ({ orders }) => {
         }
         const dataToExport = filteredSoldItems.map(item => ({
             "Tanggal": new Date(item.orderDate).toLocaleDateString('id-ID'),
-            "No. Order": item.orderNumber,
-            "Nama Produk": item.product.name,
-            "SKU": item.product.sku || '-',
-            "Qty": item.quantity,
-            "Harga Jual": item.sellPrice,
-            "Harga Beli": item.buyPrice,
-            "Subtotal": item.subtotal,
-            "Profit": item.profit,
+            "No. Order": item.orderNumber, "Nama Produk": item.product.name, "SKU": item.product.sku || '-', "Qty": item.quantity,
+            "Harga Jual": item.sellPrice, "Harga Beli": item.buyPrice, "Subtotal": item.subtotal, "Profit": item.profit,
         }));
         const worksheet = XLSX.utils.json_to_sheet(dataToExport);
         XLSX.utils.sheet_add_aoa(worksheet, [ [], ["", "", "", "", "", "", "TOTAL", totalRevenue, totalProfit] ], { origin: -1 });
@@ -95,15 +89,29 @@ const SalesReportView: React.FC<{ orders: Order[] }> = ({ orders }) => {
         XLSX.writeFile(workbook, fileName);
     };
 
+    // Handler untuk tombol print PDF
+    const handlePrintPdf = () => {
+        if (filteredSoldItems.length === 0) {
+            alert("Tidak ada data untuk dicetak dalam format PDF.");
+            return;
+        }
+        generateSalesReportPDF(filteredSoldItems, dateRange, totalRevenue, totalProfit);
+    };
+
     return (
         <>
             <Script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" strategy="lazyOnload" />
             <div className="space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Laporan Penjualan</h1>
-                    <button onClick={handleExportToExcel} className="flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg shadow-sm hover:bg-green-700 transition-colors text-sm font-medium">
-                        <FileDown size={16} /> Cetak Excel
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button onClick={handlePrintPdf} className="flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg shadow-sm hover:bg-red-700 transition-colors text-sm font-medium">
+                            <Printer size={16} /> Cetak PDF
+                        </button>
+                        <button onClick={handleExportToExcel} className="flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg shadow-sm hover:bg-green-700 transition-colors text-sm font-medium">
+                            <FileDown size={16} /> Cetak Excel
+                        </button>
+                    </div>
                 </div>
                 
                 <div className="p-4 bg-white rounded-lg shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -146,7 +154,6 @@ const SalesReportView: React.FC<{ orders: Order[] }> = ({ orders }) => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200">
-                                {/* 5. Gunakan data  */}
                                 {paginatedSoldItems.map((item, index) => (
                                     <tr key={`${item.id}-${index}`}>
                                         <td className="p-3 text-sm text-slate-500">{new Date(item.orderDate).toLocaleDateString('id-ID')}</td>
@@ -162,7 +169,6 @@ const SalesReportView: React.FC<{ orders: Order[] }> = ({ orders }) => {
                         </table>
                         {filteredSoldItems.length === 0 && <p className="text-center text-slate-500 py-10">Tidak ada item penjualan ditemukan sesuai filter.</p>}
                     </div>
-                    {/* 6. Tampilkan komponen navigasi */}
                     <PaginationControls
                         currentPage={currentPage}
                         totalPages={totalPages}
