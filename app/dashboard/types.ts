@@ -7,6 +7,8 @@ export interface Category {
   description?: string | null;
 }
 
+
+
 export interface Product {
   id: number;
   name: string;
@@ -37,7 +39,7 @@ export interface OrderItem {
   [x: string]: any;
   id: number;
   productId: number;
-  product: Pick<Product, 'name' | 'sku' | 'buyPrice'>; 
+  product: Pick<Product, 'name' | 'sku' | 'buyPrice' | 'imageUrl'>;
   quantity: number;
   buyPrice: number;
   sellPrice: number; 
@@ -84,7 +86,8 @@ export interface SalesDataPoint {
 export interface TopProductDataPoint {
   id: string; 
   name: string; 
-  quantitySold: number; 
+  quantitySold: number;
+  totalSold: number; 
 }
 
 export type DashboardViewProps = {

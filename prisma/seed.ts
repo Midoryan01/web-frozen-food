@@ -1,5 +1,19 @@
-// prisma/seed.ts
-import { PrismaClient, StockLogType, OrderStatus } from '@prisma/client';
+
+import { PrismaClient } from '@prisma/client';
+
+
+enum StockLogType {
+  PURCHASE = 'PURCHASE',
+  SALE = 'SALE',
+}
+
+
+enum OrderStatus {
+  PENDING = 'PENDING',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
+}
+
 import bcrypt from 'bcryptjs';
 import { Decimal } from 'decimal.js';
 

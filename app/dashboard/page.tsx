@@ -5,7 +5,8 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
 // PERBAIKAN: Pastikan semua tipe diimpor dari satu sumber
-import type { Page, Product, Category, Order, StockLog, User, SalesDataPoint, TopProductDataPoint, ApiResponse } from '@/types';
+import type { Page, Product, Category, StockLog, User, SalesDataPoint, ApiResponse } from '@/types';
+import type { Order, TopProductDataPoint } from './types';
 
 // Impor Komponen Layout & Tampilan
 import Sidebar from './components/Sidebar';
