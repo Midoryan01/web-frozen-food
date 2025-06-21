@@ -1,13 +1,65 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
-import type { StockLog } from '../types';
-import { RefreshCw, Search, ArrowUpCircle, ArrowDownCircle, FileDown } from 'lucide-react';
+import React, { useState, useMemo, FormEvent } from 'react';
+import type { StockLog } from '@/types'; // Menggunakan tipe dari @/types
+import { RefreshCw, Search, ArrowUpCircle, ArrowDownCircle, FileDown, Edit, Trash2, XCircle } from 'lucide-react';
 import Script from 'next/script';
 import PaginationControls from '../components/PaginationControls';
 
 // Deklarasi global untuk library eksternal agar TypeScript tidak error
 declare const XLSX: any;
+
+// Komponen Modal untuk mengedit catatan
+const EditNotesModal: React.FC<{
+    log: StockLog;
+    onClose: () => void;
+    onSave: (logId: number, notes: string) => Promise<void>;
+}> = ({ log, onClose, onSave }) => {
+    const [notes, setNotes] = useState(log.notes || '');
+    const [isSaving, setIsSaving] = useState(false);
+
+    const handleSubmit = async (e: FormEvent) => {
+        e.preventDefault();
+        setIsSaving(true);
+        await onSave(log.id, notes);
+        setIsSaving(false);
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-md">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-bold text-slate-800">Edit Catatan Log Stok</h3>
+                    <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+                        <XCircle size={24} />
+                    </button>
+                </div>
+                <form onSubmit={handleSubmit}>
+                    <p className="text-sm text-slate-600 mb-2">
+                        Produk: <span className="font-semibold">{log.product.name} ({log.product.sku})</span>
+                    </p>
+                    <textarea
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        rows={4}
+                        className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-sky-500"
+                        placeholder="Tambahkan catatan..."
+                    />
+                    <div className="flex justify-end gap-3 mt-4">
+                        <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200">
+                            Batal
+                        </button>
+                        <button type="submit" disabled={isSaving} className="px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 disabled:bg-slate-400">
+                            {isSaving ? 'Menyimpan...' : 'Simpan'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
 
 interface StockLogViewProps {
     stockLogs: StockLog[];
@@ -16,37 +68,31 @@ interface StockLogViewProps {
 }
 
 const StockLogView: React.FC<StockLogViewProps> = ({ stockLogs, isLoading, fetchStockLogs }) => {
-    // State untuk filter dan pencarian
     const [searchTerm, setSearchTerm] = useState('');
     const [dateRange, setDateRange] = useState<{ start: string, end: string }>({ start: '', end: '' });
     const [changeType, setChangeType] = useState<'in' | 'out' | ''>('');
     const [logType, setLogType] = useState<StockLog['type'] | ''>('');
-    
-    // State untuk navigasi
     const [currentPage, setCurrentPage] = useState(1);
-    // *** PERBAIKAN: Set nilai default ke 10 agar konsisten dengan pilihan yang ada ***
     const [itemsPerPage, setItemsPerPage] = useState(10);
+    
+    // State untuk modal
+    const [editingLog, setEditingLog] = useState<StockLog | null>(null);
 
-    // Memoized-logic untuk memfilter log
     const filteredLogs = useMemo(() => {
         if (!Array.isArray(stockLogs)) return [];
         
         return stockLogs.filter(log => {
             const logDate = new Date(log.createdAt);
-            
             const matchesSearch = log.product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                                   (log.product.sku && log.product.sku.toLowerCase().includes(searchTerm.toLowerCase()));
-            
-            const matchesChangeType = changeType === 'in' ? log.quantity > 0 : 
-                                      changeType === 'out' ? log.quantity < 0 : true;
-
+            const matchesChangeType = changeType === 'in' ? log.quantity > 0 : changeType === 'out' ? log.quantity < 0 : true;
             const matchesLogType = logType ? log.type === logType : true;
 
             let matchesDate = true;
             if (dateRange.start && dateRange.end) {
                 const startDate = new Date(dateRange.start);
                 const endDate = new Date(dateRange.end);
-                endDate.setHours(23, 59, 59, 999); // Set ke akhir hari
+                endDate.setHours(23, 59, 59, 999);
                 matchesDate = logDate >= startDate && logDate <= endDate;
             }
 
@@ -54,24 +100,20 @@ const StockLogView: React.FC<StockLogViewProps> = ({ stockLogs, isLoading, fetch
         }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }, [stockLogs, searchTerm, dateRange, changeType, logType]);
 
-    // Logika untuk memotong data sesuai halaman
     const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
     const paginatedLogs = useMemo(() => {
         const startIndex = (currentPage - 1) * itemsPerPage;
-        const endIndex = startIndex + itemsPerPage;
-        return filteredLogs.slice(startIndex, endIndex);
+        return filteredLogs.slice(startIndex, startIndex + itemsPerPage);
     }, [filteredLogs, currentPage, itemsPerPage]);
 
-    // Handler untuk mengubah halaman dan item per halaman
     const onPageChange = (page: number) => {
         if (page > 0 && page <= totalPages) setCurrentPage(page);
     };
     const onItemsPerPageChange = (size: number) => {
         setItemsPerPage(size);
-        setCurrentPage(1); // Reset ke halaman 1 saat ukuran diubah
+        setCurrentPage(1);
     };
 
-    // Fungsi utilitas untuk styling tipe log
     const getLogTypeStyling = (type: StockLog['type']) => {
         switch(type) {
             case 'PURCHASE': case 'RETURN_CUSTOMER': return 'bg-blue-100 text-blue-700';
@@ -79,9 +121,8 @@ const StockLogView: React.FC<StockLogViewProps> = ({ stockLogs, isLoading, fetch
             case 'ADJUSTMENT': case 'RETURN_SUPPLIER': return 'bg-yellow-100 text-yellow-700';
             default: return 'bg-slate-100 text-slate-700';
         }
-    }
+    };
     
-    // Fungsi untuk ekspor ke Excel
     const handleExportToExcel = () => {
         if (typeof XLSX === 'undefined') {
             alert("Library untuk ekspor Excel belum termuat. Silakan coba lagi sebentar.");
@@ -101,13 +142,61 @@ const StockLogView: React.FC<StockLogViewProps> = ({ stockLogs, isLoading, fetch
         const worksheet = XLSX.utils.json_to_sheet(dataToExport);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Log Stok");
-        const fileName = `Laporan_Log_Stok_${new Date().toISOString().split('T')[0]}.xlsx`;
-        XLSX.writeFile(workbook, fileName);
+        XLSX.writeFile(workbook, `Laporan_Log_Stok_${new Date().toISOString().split('T')[0]}.xlsx`);
+    };
+
+    // Fungsi untuk menyimpan perubahan catatan
+    const handleSaveNotes = async (logId: number, notes: string) => {
+        try {
+            const response = await fetch(`/api/stocklog/${logId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notes }),
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Gagal menyimpan catatan');
+            }
+            alert('Catatan berhasil diperbarui!');
+            await fetchStockLogs(); // Refresh data
+        } catch (error: any) {
+            console.error(error);
+            alert(`Error: ${error.message}`);
+        }
+    };
+
+    // Fungsi untuk menghapus log
+    const handleDeleteLog = async (logId: number) => {
+        if (window.confirm('Apakah Anda yakin ingin menghapus log ini? Stok akan dikembalikan ke kondisi semula.')) {
+            try {
+                const response = await fetch(`/api/stocklog/${logId}`, {
+                    method: 'DELETE',
+                });
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Gagal menghapus log');
+                }
+                alert('Log berhasil dihapus dan stok telah dikembalikan.');
+                await fetchStockLogs(); // Refresh data
+            } catch (error: any) {
+                console.error(error);
+                alert(`Error: ${error.message}`);
+            }
+        }
     };
 
     return (
         <>
             <Script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" strategy="lazyOnload" />
+            
+            {editingLog && (
+                <EditNotesModal 
+                    log={editingLog}
+                    onClose={() => setEditingLog(null)}
+                    onSave={handleSaveNotes}
+                />
+            )}
+
             <div className="space-y-6">
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
                     <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Log Stok</h1>
@@ -122,7 +211,8 @@ const StockLogView: React.FC<StockLogViewProps> = ({ stockLogs, isLoading, fetch
                 </div>
 
                 <div className="p-4 bg-white rounded-lg shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div>
+                    {/* Filter controls... */}
+                     <div>
                          <label htmlFor="searchProduct" className="block text-xs font-medium text-slate-600 mb-1">Cari Produk</label>
                          <div className="relative">
                              <input type="text" id="searchProduct" placeholder="Nama produk atau SKU..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full p-2 pl-9 border border-slate-300 rounded-lg text-sm"/>
@@ -161,7 +251,6 @@ const StockLogView: React.FC<StockLogViewProps> = ({ stockLogs, isLoading, fetch
                     </div>
                 </div>
 
-                {/* *** PERBAIKAN: Menghapus `overflow-hidden` dari div ini *** */}
                 <div className="bg-white rounded-lg shadow-md border border-slate-200">
                     <div className="overflow-x-auto">
                         <table className="w-full min-w-[800px]">
@@ -173,6 +262,7 @@ const StockLogView: React.FC<StockLogViewProps> = ({ stockLogs, isLoading, fetch
                                     <th className="p-3 text-center text-xs font-semibold text-slate-500 uppercase">Tipe</th>
                                     <th className="p-3 text-left text-xs font-semibold text-slate-500 uppercase">Oleh</th>
                                     <th className="p-3 text-left text-xs font-semibold text-slate-500 uppercase">Catatan</th>
+                                    <th className="p-3 text-center text-xs font-semibold text-slate-500 uppercase">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200">
@@ -190,7 +280,11 @@ const StockLogView: React.FC<StockLogViewProps> = ({ stockLogs, isLoading, fetch
                                             </span>
                                         </td>
                                         <td className="p-3 text-sm text-slate-500">{log.user.fullName}</td>
-                                        <td className="p-3 text-sm text-slate-500 italic">{log.notes || '-'}</td>
+                                        <td className="p-3 text-sm text-slate-500 italic max-w-xs truncate" title={log.notes || ''}>{log.notes || '-'}</td>
+                                        <td className="p-3 text-center">
+                                            <button onClick={() => setEditingLog(log)} className="text-sky-600 hover:text-sky-800 p-1.5" title="Edit Catatan"><Edit size={16} /></button>
+                                            <button onClick={() => handleDeleteLog(log.id)} className="text-red-500 hover:text-red-700 p-1.5 ml-1" title="Hapus Log"><Trash2 size={16} /></button>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>

@@ -1,11 +1,14 @@
-@import "tailwindcss";
-/* @import "tailwindcss/preflight";
-@import "tailwindcss/utilities"; */
-/* Anda bisa menambahkan gaya kustom lainnya di sini */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Gaya kustom Anda bisa tetap di sini */
 html,
 body {
   font-family: "Inter", sans-serif; /* Pastikan font Inter diterapkan */
 }
+
 html {
   scroll-behavior: smooth;
 }

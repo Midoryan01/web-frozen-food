@@ -1,23 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma'; // Menggunakan instance Prisma bersama
+import prisma from '@/lib/prisma';
 import path from 'path';
-import fs from 'fs/promises'; // Untuk operasi file async
-import { Prisma } from '@prisma/client'; // Untuk tipe input Prisma
+import fs from 'fs/promises';
+import { Prisma } from '@prisma/client';
+import { getToken } from 'next-auth/jwt'; // Untuk mendapatkan info user
 
-// Helper function untuk sanitasi nama file (jika belum ada di scope ini)
+// Helper function untuk membersihkan nama file dari karakter yang tidak aman
 function sanitizeFilename(filename: string): string {
   if (!filename) return '';
   return filename.replace(/[^a-zA-Z0-9_.-]/g, '_');
 }
 
-// GET product by ID (tetap sama seperti sebelumnya)
+// GET handler (tidak diubah, disertakan untuk kelengkapan file)
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
-    const numericId = parseInt(id, 10);
+    const numericId = parseInt(params.id, 10);
     if (isNaN(numericId)) {
       return NextResponse.json({ message: 'Format ID tidak valid' }, { status: 400 });
     }
@@ -43,144 +43,123 @@ export async function GET(
   }
 }
 
-// PATCH update product with form-data (and optional file upload)
+/**
+ * PATCH handler untuk memperbarui produk.
+ * Menerima 'multipart/form-data' untuk menghandle update data teks dan file gambar.
+ */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
-    const numericId = parseInt(id, 10);
+    // 1. Validasi ID produk dari URL
+    const numericId = parseInt(params.id, 10);
     if (isNaN(numericId)) {
       return NextResponse.json({ message: 'ID produk tidak valid' }, { status: 400 });
     }
 
-    const contentType = request.headers.get('content-type') || '';
-    if (!contentType.includes('multipart/form-data')) {
-      return NextResponse.json(
-        { message: 'Format request tidak valid', details: 'Diharapkan multipart/form-data' },
-        { status: 400 }
-      );
+    // 2. Ambil data sesi pengguna untuk logging
+    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+    if (!token || !token.id) {
+        return NextResponse.json({ message: 'Tidak terautentikasi' }, { status: 401 });
     }
+    const userId = parseInt(token.id as string, 10);
 
+
+    // 3. Ambil dan validasi data dari form
     const formData = await request.formData();
-
     const currentProduct = await prisma.product.findUnique({
       where: { id: numericId },
-      select: { imageUrl: true, sku: true, stock: true, categoryId: true }, // Ambil categoryId saat ini jika perlu
     });
 
     if (!currentProduct) {
-      return NextResponse.json({ message: 'Produk tidak ditemukan untuk diperbarui' }, { status: 404 });
+      return NextResponse.json({ message: 'Produk yang akan diperbarui tidak ditemukan' }, { status: 404 });
     }
 
+    // 4. Siapkan objek data untuk pembaruan
     const updateData: Prisma.ProductUpdateInput = {};
 
+    // Map semua field teks dari FormData ke objek updateData
     if (formData.has('name')) updateData.name = formData.get('name') as string;
     if (formData.has('sku')) updateData.sku = formData.get('sku') as string;
     if (formData.has('buyPrice')) updateData.buyPrice = parseFloat(formData.get('buyPrice') as string);
     if (formData.has('sellPrice')) updateData.sellPrice = parseFloat(formData.get('sellPrice') as string);
     if (formData.has('stock')) updateData.stock = parseInt(formData.get('stock') as string, 10);
     if (formData.has('description')) updateData.description = formData.get('description') as string;
+    if (formData.has('supplier')) updateData.supplier = formData.get('supplier') as string;
     if (formData.has('expiryDate')) updateData.expiryDate = new Date(formData.get('expiryDate') as string);
 
-    // --- KOREKSI UNTUK categoryId ---
+    // Penanganan categoryId yang lebih aman
     if (formData.has('categoryId')) {
       const categoryIdStr = formData.get('categoryId') as string;
-      if (categoryIdStr && categoryIdStr.trim() !== "") {
-        const newCategoryId = parseInt(categoryIdStr, 10);
-        if (!isNaN(newCategoryId)) {
-          updateData.category = { connect: { id: newCategoryId } };
-        } else {
-          // Handle jika categoryIdStr tidak valid (bukan angka)
-          return NextResponse.json({ message: 'Format ID Kategori tidak valid.' }, { status: 400 });
-        }
+      // Jika categoryId ada dan merupakan angka valid, hubungkan.
+      if (categoryIdStr && !isNaN(parseInt(categoryIdStr))) {
+        updateData.category = { connect: { id: parseInt(categoryIdStr) } };
       } else {
-        // Jika categoryId dikirim sebagai string kosong, berarti ingin menghapus relasi kategori
-        // Pastikan relasi category di model Product bersifat opsional (categoryId Int?)
-        if (currentProduct.categoryId !== null) { // Hanya disconnect jika ada relasi sebelumnya
-            updateData.category = { disconnect: true };
-        }
+        // Jika categoryId kosong atau tidak valid, putuskan hubungan.
+        updateData.category = { disconnect: true };
       }
     }
-    // --- END KOREKSI categoryId ---
 
-    if (updateData.name === '') {
-        return NextResponse.json({ message: 'Nama produk tidak boleh kosong' }, { status: 400 });
-    }
-    // Validasi lainnya bisa ditambahkan di sini
-
-
-    let newPublicImageUrl: string | undefined = undefined;
+    // 5. Proses upload dan penghapusan gambar
     const imageFile = formData.get('image') as File | null;
-
+    const removeCurrentImage = formData.get('removeCurrentImage') === 'true';
+    
+    // Jika ada file gambar baru diupload
     if (imageFile) {
       const relativeUploadDir = "/images/products";
       const uploadDir = path.join(process.cwd(), "public", relativeUploadDir);
       await fs.mkdir(uploadDir, { recursive: true });
 
-      const originalFilename = sanitizeFilename(imageFile.name);
-      const fileExtension = path.extname(originalFilename);
-      
       const skuForFilename = (updateData.sku as string) || currentProduct.sku || 'item';
-      const uniqueFilename = `product-${numericId}-${sanitizeFilename(skuForFilename)}${fileExtension}`;
+      const uniqueFilename = `product-${numericId}-${sanitizeFilename(skuForFilename)}${path.extname(imageFile.name)}`;
       
-      newPublicImageUrl = path.join(relativeUploadDir, uniqueFilename).replace(/\\/g, "/");
+      const newPublicImageUrl = path.join(relativeUploadDir, uniqueFilename).replace(/\\/g, "/");
       const filePath = path.join(uploadDir, uniqueFilename);
 
+      // Simpan file baru
       const buffer = Buffer.from(await imageFile.arrayBuffer());
       await fs.writeFile(filePath, buffer);
       updateData.imageUrl = newPublicImageUrl;
 
+      // Hapus gambar lama jika ada dan berbeda dari yang baru
       if (currentProduct.imageUrl && currentProduct.imageUrl !== newPublicImageUrl) {
         try {
-          const oldImagePath = path.join(process.cwd(), "public", currentProduct.imageUrl);
-          await fs.unlink(oldImagePath);
+          await fs.unlink(path.join(process.cwd(), "public", currentProduct.imageUrl));
         } catch (unlinkError: any) {
-          if (unlinkError.code !== 'ENOENT') {
-            console.warn(`Gagal menghapus gambar lama (${currentProduct.imageUrl}):`, unlinkError.message);
-          }
+          if (unlinkError.code !== 'ENOENT') console.warn(`Gagal menghapus gambar lama: ${currentProduct.imageUrl}`);
         }
       }
-    } else if (formData.has('removeImage') && formData.get('removeImage') === 'true') {
-        if (currentProduct.imageUrl) {
-            try {
-                const oldImagePath = path.join(process.cwd(), "public", currentProduct.imageUrl);
-                await fs.unlink(oldImagePath);
-                updateData.imageUrl = null; 
-            } catch (unlinkError: any) {
-                if (unlinkError.code !== 'ENOENT') {
-                    console.warn(`Gagal menghapus gambar (${currentProduct.imageUrl}):`, unlinkError.message);
-                } else {
-                    updateData.imageUrl = null;
-                }
-            }
-        } else {
-            updateData.imageUrl = null; 
+    } else if (removeCurrentImage) { // Jika user memilih untuk menghapus gambar yang ada
+      if (currentProduct.imageUrl) {
+        try {
+          await fs.unlink(path.join(process.cwd(), "public", currentProduct.imageUrl));
+        } catch (unlinkError: any) {
+          if (unlinkError.code !== 'ENOENT') console.warn(`Gagal menghapus gambar: ${currentProduct.imageUrl}`);
         }
+      }
+      updateData.imageUrl = null; // Set URL di database menjadi null
     }
 
+    // 6. Jalankan pembaruan dalam satu transaksi database
     const updatedProduct = await prisma.$transaction(async (tx) => {
       const productAfterUpdate = await tx.product.update({
         where: { id: numericId },
         data: updateData,
-        include: {
-          category: true,
-        },
+        include: { category: true }, // Sertakan kategori dalam respons
       });
 
+      // Buat log stok hanya jika jumlah stok benar-benar berubah
       if (typeof updateData.stock === 'number' && updateData.stock !== currentProduct.stock) {
         const stockDifference = updateData.stock - currentProduct.stock;
         await tx.stockLog.create({
           data: {
             productId: productAfterUpdate.id,
             quantity: stockDifference,
-            // --- KOREKSI UNTUK StockLogType ---
-            type: 'ADJUSTMENT', // Gunakan nilai enum yang valid. Kuantitas akan menunjukkan arah.
-            // --- END KOREKSI StockLogType ---
-            buyPrice: productAfterUpdate.buyPrice, 
-            userId: 1, // Ganti dengan ID user yang login
-            notes: 'Penyesuaian stok melalui pembaruan produk',
+            type: 'ADJUSTMENT',
+            buyPrice: productAfterUpdate.buyPrice,
+            userId: userId, // Gunakan ID user yang sedang login
+            notes: 'Penyesuaian stok dari form edit produk.',
           },
         });
       }
@@ -191,16 +170,17 @@ export async function PATCH(
 
   } catch (error: any) {
     console.error('Error memperbarui produk:', error);
-    if (error.code === 'P2002' && error.meta?.target?.includes('sku')) {
-      return NextResponse.json({ message: 'SKU sudah ada. Gunakan SKU lain.' }, { status: 409 });
-    }
-    if (error.code === 'P2025') { 
-        return NextResponse.json({ message: 'Produk tidak ditemukan untuk diperbarui' }, { status: 404 });
-    }
-    // Tangani error spesifik dari Prisma jika categoryId yang di-connect tidak ada
+    // Penanganan error spesifik
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2025' && error.message.includes('connect')) {
-            return NextResponse.json({ message: 'Kategori yang dipilih tidak ditemukan.' }, { status: 400 });
+        if (
+          error.code === 'P2002' &&
+          Array.isArray(error.meta?.target) &&
+          error.meta.target.includes('sku')
+        ) {
+            return NextResponse.json({ message: 'SKU sudah ada. Gunakan SKU lain.' }, { status: 409 });
+        }
+        if (error.code === 'P2025') {
+            return NextResponse.json({ message: 'Kategori atau produk yang direferensikan tidak ditemukan.' }, { status: 404 });
         }
     }
     return NextResponse.json(
@@ -210,15 +190,14 @@ export async function PATCH(
   }
 }
 
-// DELETE product (tetap sama seperti sebelumnya, sudah cukup baik)
+
+// DELETE handler (tidak diubah, disertakan untuk kelengkapan file)
 export async function DELETE(
   request: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
-
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
-    const numericId = parseInt(id, 10);
+    const numericId = parseInt(params.id, 10);
     if (isNaN(numericId)) {
       return NextResponse.json({ message: 'Format ID tidak valid' }, { status: 400 });
     }
@@ -256,7 +235,7 @@ export async function DELETE(
 
   } catch (error: any) {
     console.error('Error menghapus produk:', error);
-    if (error.code === 'P2025') {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
       return NextResponse.json({ message: 'Produk tidak ditemukan untuk dihapus' }, { status: 404 });
     }
     return NextResponse.json(

@@ -1,13 +1,12 @@
 // lib/auth.ts
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import CredentialsProvider from "next-auth/providers/credentials";
-import { compare } from "bcryptjs";
-import prisma from "./prisma";
-import type { NextAuthOptions } from "next-auth"; // Menggunakan tipe yang sesuai dengan v4
+import NextAuth, { NextAuthOptions } from 'next-auth';
+import { PrismaAdapter } from '@next-auth/prisma-adapter';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import { compare } from 'bcryptjs';
+import prisma from './prisma';
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
-
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -16,28 +15,19 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        // Pastikan kredensial username dan password ada
         if (!credentials?.username || !credentials.password) {
           return null;
         }
-
-        // Cari pengguna berdasarkan username unik
         const user = await prisma.user.findUnique({
           where: { username: credentials.username },
         });
-
-        // Periksa apakah pengguna ada, memiliki password, dan akunnya aktif
         if (!user || !user.password || !user.isActive) {
           return null;
         }
-
-        // Verifikasi password
         const isPasswordValid = await compare(credentials.password, user.password);
         if (!isPasswordValid) {
           return null;
         }
-
-        // Jika semua valid, kembalikan objek user untuk sesi
         return {
           id: user.id.toString(),
           username: user.username,
@@ -47,26 +37,20 @@ export const authOptions: NextAuthOptions = {
       },
     }),
   ],
-
   session: {
     strategy: "jwt",
   },
-
   callbacks: {
-    // Callback jwt dipanggil saat token dibuat (saat login)
     async jwt({ token, user }) {
-      // Objek `user` hanya tersedia saat pertama kali login
       if (user) {
         token.id = user.id;
-        token.username = (user as any).username;
+        token.username = user.username;
         token.role = user.role;
-        token.fullName = (user as any).fullName;
+        token.fullName = user.fullName;
       }
       return token;
     },
-    // Callback session dipanggil saat sesi diakses oleh client
     async session({ session, token }) {
-      // Pindahkan data dari token ke objek sesi agar tersedia di client
       if (session.user) {
         session.user.id = token.id as string;
         session.user.username = token.username as string;
@@ -76,10 +60,12 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
-
   pages: {
     signIn: "/login",
   },
-
   secret: process.env.NEXTAUTH_SECRET,
 };
+
+// Ekspor handler untuk digunakan di route.ts
+const handler = NextAuth(authOptions);
+export default handler;

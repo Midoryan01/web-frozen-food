@@ -64,7 +64,6 @@ export async function PATCH(
       return NextResponse.json({ error: "Stock log not found" }, { status: 404 });
     }
 
-    // Untuk stock log, hanya izinkan update notes untuk log yang sudah ada
     // Hal ini untuk mencegah inkonsistensi data stok
     const updatedStockLog = await prisma.stockLog.update({
       where: { id: numericId },

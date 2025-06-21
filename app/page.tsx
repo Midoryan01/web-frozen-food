@@ -162,34 +162,37 @@ export default function HomePage() {
       <main className="flex-grow">
         {/* Hero Section */}
         <section id="hero" className="relative w-full min-h-screen text-white">
-          <Image
-            src="/Aneka-Frozen-Food.jpg"
-            alt="Berbagai macam produk frozen food yang disajikan dengan menarik"
-            fill
-            priority
-            className="object-cover -z-10"
-          />
-          <div className="absolute inset-0 bg-black/50"></div>
-          <div className="relative z-20 container mx-auto px-6 h-full flex items-center">
-            <div className="text-center w-full pt-50">
-              <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-4">
-                Kebaikan Beku, Siap Saji Setiap Saat
-              </h1>
+            <Image
+              src="/Aneka-Frozen-Food.jpg"
+              alt="Berbagai macam produk frozen food yang disajikan dengan menarik"
+              fill
+              priority
+              className="object-cover -z-10"
+            />
+            <div className="absolute inset-0 bg-black/50"></div>
 
-              <p className="text-lg md:text-xl text-gray-200 max-w-3xl mx-auto mb-8">
-                Sediakan hidangan lezat dan praktis untuk keluarga dengan produk
-                frozen food premium dari Mapayo.
-              </p>
+              {/* Tengah layar secara vertikal & horizontal */}
+              <div className="absolute inset-0 z-20 flex items-center justify-center px-6">
+                <div className="text-center w-full max-w-3xl">
+                  <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-4">
+                    Kebaikan Beku, Siap Saji Setiap Saat
+                  </h1>
 
-              <a
-                href="#produk"
-                className="bg-white text-sky-700 px-8 py-4 rounded-full text-lg font-bold hover:bg-slate-100 transition-all duration-300 shadow-xl transform hover:scale-105 inline-block"
-              >
-                Lihat Produk Kami
-              </a>
-            </div>
-          </div>
-        </section>
+                  <p className="text-lg md:text-xl text-gray-200 mb-8">
+                    Sediakan hidangan lezat dan praktis untuk keluarga dengan produk
+                    frozen food premium dari Mapayo.
+                  </p>
+
+                  <a
+                    href="#produk"
+                    className="bg-white text-sky-700 px-8 py-4 rounded-full text-lg font-bold hover:bg-slate-100 transition-all duration-300 shadow-xl transform hover:scale-105 inline-block"
+                  >
+                    Lihat Produk Kami
+                  </a>
+                </div>
+              </div>
+            </section>
+
 
         {/* Featured Products Section */}
         <section id="produk" className="py-20 md:py-24 bg-slate-50">
