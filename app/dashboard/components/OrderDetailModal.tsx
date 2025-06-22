@@ -4,7 +4,7 @@
 import React from 'react';
 import Image from 'next/image';
 import { XCircle, Package, ShoppingCart, User, Calendar, CreditCardIcon, Hash, Info, UserCircle, CheckCircle } from 'lucide-react';
-import type { Order, OrderItem, Product } from '../types'; // Impor tipe
+import type { Order, OrderItem } from '../types'; 
 
 interface OrderDetailModalProps {
   order: Order | null;
