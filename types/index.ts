@@ -36,7 +36,7 @@ export interface User {
 export interface OrderItem {
   id: number;
   productId: number;
-  product: Pick<Product, 'id' | 'name' | 'sku' | 'imageUrl'>;
+  product: Pick<Product, "id" | "name" | "sku" | "imageUrl" | "buyPrice">;
   quantity: number;
   buyPrice: number;
   sellPrice: number;
