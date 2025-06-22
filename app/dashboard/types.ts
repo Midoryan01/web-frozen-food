@@ -34,7 +34,6 @@ export interface User {
 }
 
 export interface OrderItem {
-  [x: string]: any;
   id: number;
   productId: number;
   product: Pick<Product, "name" | "sku" | "buyPrice" | "imageUrl">;
