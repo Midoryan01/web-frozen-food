@@ -6,7 +6,7 @@ import { PlusCircle, Edit3, Trash2, Search, Package, RefreshCw, AlertTriangle } 
 import type { Product, Category } from '../types';
 import ProductFormModal from '../components/ProductFormModal';
 import ThSortable from '../components/ThSortable';
-import PaginationControls from '../components/PaginationControls'; // Impor komponen
+import PaginationControls from '../components/PaginationControls';
 
 interface ProductManagementViewProps {
     initialProducts: Product[];
@@ -21,11 +21,13 @@ const ProductManagementView: React.FC<ProductManagementViewProps> = ({ initialPr
     const [showModal, setShowModal] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [sortConfig, setSortConfig] = useState<{ key: keyof Product | 'category.name' | null; direction: 'ascending' | 'descending' }>({ key: 'name', direction: 'ascending' });
+    
+    // --- PERUBAHAN DI SINI ---
+    const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: 'ascending' | 'descending' }>({ key: 'name', direction: 'ascending' });
     
     // State untuk navigasi
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(10); // Default 10 item
+    const [itemsPerPage, setItemsPerPage] = useState(10);
 
     useEffect(() => {
         setProducts(initialProducts);
@@ -54,7 +56,6 @@ const ProductManagementView: React.FC<ProductManagementViewProps> = ({ initialPr
         return sortableProducts.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()) || (p.sku && p.sku.toLowerCase().includes(searchTerm.toLowerCase())) || (p.category?.name && p.category.name.toLowerCase().includes(searchTerm.toLowerCase())));
     }, [products, searchTerm, sortConfig]);
 
-    // Logika untuk memotong data sesuai halaman
     const totalPages = Math.ceil(filteredAndSortedProducts.length / itemsPerPage);
     const paginatedProducts = useMemo(() => {
         const startIndex = (currentPage - 1) * itemsPerPage;
@@ -62,7 +63,6 @@ const ProductManagementView: React.FC<ProductManagementViewProps> = ({ initialPr
         return filteredAndSortedProducts.slice(startIndex, endIndex);
     }, [filteredAndSortedProducts, currentPage, itemsPerPage]);
 
-    // Handler untuk mengubah halaman dan item per halaman
     const onPageChange = (page: number) => {
         if (page > 0 && page <= totalPages) setCurrentPage(page);
     };
@@ -71,11 +71,13 @@ const ProductManagementView: React.FC<ProductManagementViewProps> = ({ initialPr
         setCurrentPage(1);
     };
 
-    const requestSort = (key: keyof Product | 'category.name') => {
+    // --- PERUBAHAN DI SINI ---
+    const requestSort = (key: string) => {
         let direction: 'ascending' | 'descending' = 'ascending';
         if (sortConfig.key === key && sortConfig.direction === 'ascending') direction = 'descending';
         setSortConfig({ key, direction });
     };
+
     const handleAddProduct = () => { setEditingProduct(null); setShowModal(true); };
     const handleEditProduct = (product: Product) => { setEditingProduct(product); setShowModal(true); };
     const handleDeleteProduct = async (productId: number) => {
@@ -98,6 +100,7 @@ const ProductManagementView: React.FC<ProductManagementViewProps> = ({ initialPr
     };
 
     return (
+        // ... Sisa dari JSX Anda tetap sama persis dan tidak perlu diubah ...
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
                 <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Manajemen Produk</h1>
@@ -115,49 +118,49 @@ const ProductManagementView: React.FC<ProductManagementViewProps> = ({ initialPr
             {isLoadingTable && filteredAndSortedProducts.length === 0 ? (
                  <div className="flex justify-center items-center py-10"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-sky-600"></div><p className="ml-3 text-slate-600">Memuat produk...</p></div>
             ) : !isLoadingTable && filteredAndSortedProducts.length === 0 ? (
-                <div className="text-center py-10 bg-white rounded-lg shadow-md border"><Package size={48} className="mx-auto text-slate-400 mb-4"/><p className="text-slate-500 text-lg">Tidak ada produk ditemukan.</p>{searchTerm && <p className="text-sm text-slate-400">Coba ubah kata kunci pencarian Anda.</p>}</div>
+                 <div className="text-center py-10 bg-white rounded-lg shadow-md border"><Package size={48} className="mx-auto text-slate-400 mb-4"/><p className="text-slate-500 text-lg">Tidak ada produk ditemukan.</p>{searchTerm && <p className="text-sm text-slate-400">Coba ubah kata kunci pencarian Anda.</p>}</div>
             ) : (
-                <div className="bg-white rounded-lg shadow-xl border border-slate-200">
-                    <div className="overflow-x-auto">
-                        <table className="w-full min-w-[1000px]">
-                            <thead className="bg-slate-100 border-b border-slate-300">
-                                <tr>
-                                    <ThSortable name="Gambar" sortKey={null} requestSort={requestSort} sortConfig={sortConfig} className="w-20"/>
-                                    <ThSortable name="Nama Produk" sortKey="name" requestSort={requestSort} sortConfig={sortConfig} />
-                                    <ThSortable name="SKU" sortKey="sku" requestSort={requestSort} sortConfig={sortConfig} />
-                                    <ThSortable name="Harga Jual" sortKey="sellPrice" requestSort={requestSort} sortConfig={sortConfig} align="right" />
-                                    <ThSortable name="Stok" sortKey="stock" requestSort={requestSort} sortConfig={sortConfig} align="right" />
-                                    <ThSortable name="Kategori" sortKey="category.name" requestSort={requestSort} sortConfig={sortConfig} />
-                                    <ThSortable name="Kadaluwarsa" sortKey="expiryDate" requestSort={requestSort} sortConfig={sortConfig} />
-                                    <ThSortable name="Aksi" sortKey={null} requestSort={requestSort} sortConfig={sortConfig} className="w-28 text-center"/>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-200">
-                                {paginatedProducts.map(product => (
-                                    <tr key={product.id} className="hover:bg-sky-50/50 transition-colors duration-150">
-                                        <td className="p-3"><div className="w-12 h-12 relative"><Image src={product.imageUrl || 'https://placehold.co/48x48/e2e8f0/64748b?text=N/A'} alt={product.name} layout="fill" className="rounded-md object-cover" /></div></td>
-                                        <td className="p-3 text-sm text-slate-800 font-medium align-top">{product.name}</td>
-                                        <td className="p-3 text-sm text-slate-500 align-top">{product.sku || '-'}</td>
-                                        <td className="p-3 text-sm text-slate-700 text-right align-top">Rp{product.sellPrice.toLocaleString('id-ID')}</td>
-                                        <td className={`p-3 text-sm text-right align-top font-semibold ${product.stock < 10 ? 'text-red-500' : product.stock < 50 ? 'text-orange-500' : 'text-green-600'}`}>{product.stock}</td>
-                                        <td className="p-3 text-sm text-slate-500 align-top">{product.category?.name || '-'}</td>
-                                        <td className="p-3 text-sm text-slate-500 align-top">{new Date(product.expiryDate).toLocaleDateString('id-ID', {year: 'numeric', month: 'short', day: 'numeric'})}</td>
-                                        <td className="p-3 text-center align-top"><button onClick={() => handleEditProduct(product)} title="Edit Produk" className="text-sky-600 hover:text-sky-800 p-1.5 rounded-md hover:bg-sky-100 transition-colors"><Edit3 size={16} /></button><button onClick={() => handleDeleteProduct(product.id)} title="Hapus Produk" className="text-red-500 hover:text-red-700 p-1.5 rounded-md hover:bg-red-100 transition-colors ml-1"><Trash2 size={16} /></button></td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <PaginationControls
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        onPageChange={onPageChange}
-                        itemsPerPage={itemsPerPage}
-                        onItemsPerPageChange={onItemsPerPageChange}
-                        totalItems={filteredAndSortedProducts.length}
-                    />
-                </div>
+                 <div className="bg-white rounded-lg shadow-xl border border-slate-200">
+                     <div className="overflow-x-auto">
+                         <table className="w-full min-w-[1000px]">
+                             <thead className="bg-slate-100 border-b border-slate-300">
+                                 <tr>
+                                     <ThSortable name="Gambar" sortKey={null} requestSort={requestSort} sortConfig={sortConfig} className="w-20"/>
+                                     <ThSortable name="Nama Produk" sortKey="name" requestSort={requestSort} sortConfig={sortConfig} />
+                                     <ThSortable name="SKU" sortKey="sku" requestSort={requestSort} sortConfig={sortConfig} />
+                                     <ThSortable name="Harga Jual" sortKey="sellPrice" requestSort={requestSort} sortConfig={sortConfig} align="right" />
+                                     <ThSortable name="Stok" sortKey="stock" requestSort={requestSort} sortConfig={sortConfig} align="right" />
+                                     <ThSortable name="Kategori" sortKey="category.name" requestSort={requestSort} sortConfig={sortConfig} />
+                                     <ThSortable name="Kadaluwarsa" sortKey="expiryDate" requestSort={requestSort} sortConfig={sortConfig} />
+                                     <ThSortable name="Aksi" sortKey={null} requestSort={requestSort} sortConfig={sortConfig} className="w-28 text-center"/>
+                                 </tr>
+                             </thead>
+                             <tbody className="divide-y divide-slate-200">
+                                 {paginatedProducts.map(product => (
+                                     <tr key={product.id} className="hover:bg-sky-50/50 transition-colors duration-150">
+                                         <td className="p-3"><div className="w-12 h-12 relative"><Image src={product.imageUrl || 'https://placehold.co/48x48/e2e8f0/64748b?text=N/A'} alt={product.name} layout="fill" className="rounded-md object-cover" /></div></td>
+                                         <td className="p-3 text-sm text-slate-800 font-medium align-top">{product.name}</td>
+                                         <td className="p-3 text-sm text-slate-500 align-top">{product.sku || '-'}</td>
+                                         <td className="p-3 text-sm text-slate-700 text-right align-top">Rp{product.sellPrice.toLocaleString('id-ID')}</td>
+                                         <td className={`p-3 text-sm text-right align-top font-semibold ${product.stock < 10 ? 'text-red-500' : product.stock < 50 ? 'text-orange-500' : 'text-green-600'}`}>{product.stock}</td>
+                                         <td className="p-3 text-sm text-slate-500 align-top">{product.category?.name || '-'}</td>
+                                         <td className="p-3 text-sm text-slate-500 align-top">{new Date(product.expiryDate).toLocaleDateString('id-ID', {year: 'numeric', month: 'short', day: 'numeric'})}</td>
+                                         <td className="p-3 text-center align-top"><button onClick={() => handleEditProduct(product)} title="Edit Produk" className="text-sky-600 hover:text-sky-800 p-1.5 rounded-md hover:bg-sky-100 transition-colors"><Edit3 size={16} /></button><button onClick={() => handleDeleteProduct(product.id)} title="Hapus Produk" className="text-red-500 hover:text-red-700 p-1.5 rounded-md hover:bg-red-100 transition-colors ml-1"><Trash2 size={16} /></button></td>
+                                     </tr>
+                                 ))}
+                             </tbody>
+                         </table>
+                     </div>
+                     
+                     <PaginationControls
+                         currentPage={currentPage}
+                         totalPages={totalPages}
+                         onPageChange={onPageChange}
+                         itemsPerPage={itemsPerPage}
+                         onItemsPerPageChange={onItemsPerPageChange}
+                         totalItems={filteredAndSortedProducts.length}
+                     />
+                 </div>
             )}
             {showModal && (<ProductFormModal product={editingProduct} categories={categories} onClose={() => setShowModal(false)} onSave={async () => { await refreshProducts(); setShowModal(false); }} apiBaseUrl={apiBaseUrl} />)}
         </div>

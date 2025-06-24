@@ -1,1 +1,1 @@
-export type Page = 'dashboard' | 'products' | 'transactions' | 'sales_report' | 'stock_logs' | 'users';
+export type Page = 'dashboard' | 'products' | 'categories' | 'transactions' | 'sales_report' | 'stock_logs' | 'users';

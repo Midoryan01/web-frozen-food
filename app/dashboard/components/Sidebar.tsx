@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Package, ListOrdered, FileText, History, Users } from 'lucide-react';
+import { LayoutDashboard, Package, ListOrdered, FileText, History, Users, Tags } from 'lucide-react';
 import type { Page } from './types/navigation';
 
 // Tipe untuk setiap item navigasi
@@ -13,6 +13,7 @@ type NavItemData = {
 const navItems: NavItemData[] = [
     { name: 'Dashboard', icon: LayoutDashboard, page: 'dashboard' },
     { name: 'Produk', icon: Package, page: 'products' },
+    { name: 'Kategori', icon: Tags, page: 'categories' },
     { name: 'Transaksi', icon: ListOrdered, page: 'transactions' },
     { name: 'Laporan Penjualan', icon: FileText, page: 'sales_report' },
     { name: 'Log Stok', icon: History, page: 'stock_logs' },

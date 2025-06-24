@@ -5,6 +5,9 @@ export interface Category {
   id: number;
   name: string;
   description?: string | null;
+  _count?: {  
+    products: number;
+  };
 }
 
 export interface Product {
@@ -99,3 +102,5 @@ export type DashboardViewProps = {
   totalRevenue: number;
   totalTransactions: number;
 };
+
+

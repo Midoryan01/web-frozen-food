@@ -84,7 +84,7 @@ const StockLogView: React.FC<StockLogViewProps> = ({ stockLogs, isLoading, fetch
         return stockLogs.filter(log => {
             const logDate = new Date(log.createdAt);
             const matchesSearch = log.product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                                  (log.product.sku && log.product.sku.toLowerCase().includes(searchTerm.toLowerCase()));
+                                    (log.product.sku && log.product.sku.toLowerCase().includes(searchTerm.toLowerCase()));
             const matchesChangeType = changeType === 'in' ? log.quantity > 0 : changeType === 'out' ? log.quantity < 0 : true;
             const matchesLogType = logType ? log.type === logType : true;
 
@@ -158,7 +158,7 @@ const StockLogView: React.FC<StockLogViewProps> = ({ stockLogs, isLoading, fetch
                 throw new Error(error.message || 'Gagal menyimpan catatan');
             }
             alert('Catatan berhasil diperbarui!');
-            await fetchStockLogs(); // Refresh data
+            await fetchStockLogs();
         } catch (error: any) {
             console.error(error);
             alert(`Error: ${error.message}`);
@@ -177,7 +177,7 @@ const StockLogView: React.FC<StockLogViewProps> = ({ stockLogs, isLoading, fetch
                     throw new Error(error.message || 'Gagal menghapus log');
                 }
                 alert('Log berhasil dihapus dan stok telah dikembalikan.');
-                await fetchStockLogs(); // Refresh data
+                await fetchStockLogs();
             } catch (error: any) {
                 console.error(error);
                 alert(`Error: ${error.message}`);
@@ -234,9 +234,7 @@ const StockLogView: React.FC<StockLogViewProps> = ({ stockLogs, isLoading, fetch
                              <option value="PURCHASE">Purchase</option>
                              <option value="SALE">Sale</option>
                              <option value="ADJUSTMENT">Adjustment</option>
-                             <option value="SPOILAGE">Spoilage</option>
-                             <option value="RETURN_CUSTOMER">Return Customer</option>
-                             <option value="RETURN_SUPPLIER">Return Supplier</option>
+                             
                          </select>
                     </div>
                      <div className="grid grid-cols-2 gap-2">

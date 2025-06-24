@@ -1,12 +1,16 @@
+// app/dashboard/components/ThSortable.tsx
 import React from 'react';
 import { ChevronUp, ChevronDown } from 'lucide-react';
-import type { Product } from '../types';
 
+// Tipe props menjadi lebih umum menggunakan `string`
 interface ThSortableProps {
     name: string;
-    sortKey: keyof Product | 'category.name' | null;
-    requestSort: (key: keyof Product | 'category.name') => void;
-    sortConfig: { key: keyof Product | 'category.name' | null; direction: string };
+    sortKey: string | null;
+    requestSort: (key: string) => void;
+    sortConfig: { 
+        key: string | null; 
+        direction: 'ascending' | 'descending';
+    };
     align?: 'left' | 'right' | 'center';
     className?: string;
 }

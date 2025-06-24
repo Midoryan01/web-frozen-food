@@ -1,4 +1,4 @@
-// app/dashboard/components/ProductFormModal.tsx
+
 "use client";
 
 import React, { useState, useEffect, FormEvent } from 'react';
@@ -7,10 +7,10 @@ import { XCircle, UploadCloud, ImageOff } from 'lucide-react';
 import type { Product, Category } from '../types'; // Impor tipe
 
 interface ProductFormModalProps {
-  product: Product | null; // Null jika menambah produk baru
+  product: Product | null; 
   categories: Category[];
   onClose: () => void;
-  onSave: () => void; // Dipanggil setelah save berhasil untuk refresh data di parent
+  onSave: () => void; 
   apiBaseUrl: string;
 }
 
