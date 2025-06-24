@@ -120,32 +120,30 @@ export async function DELETE(
     }
 
     // Hapus stock log dengan transaksi untuk menjaga konsistensi data
-    await prisma.$transaction(async (tx) => {
-      // Hapus stock log
+      await prisma.$transaction(async (tx) => {
       await tx.stockLog.delete({
         where: { id: numericId },
       });
 
-      // Kembalikan stok ke kondisi sebelumnya (balikkan quantity)
       await tx.product.update({
         where: { id: stockLog.productId },
         data: {
           stock: {
-            decrement: stockLog.quantity, // Karena kita ingin membalikkan efek
+            decrement: stockLog.quantity,
           },
         },
       });
+    });
 
-      // Tambahkan log baru untuk pencatatan pembalikan ini
-      await tx.stockLog.create({
-        data: {
-          productId: stockLog.productId,
-          quantity: -stockLog.quantity, // Membalikkan quantity
-          type: "ADJUSTMENT",
-          userId: stockLog.userId,
-          notes: `Reversal of deleted stock log #${stockLog.id}`,
-        },
-      });
+    // lakukan di luar transaksi
+    await prisma.stockLog.create({
+      data: {
+        productId: stockLog.productId,
+        quantity: -stockLog.quantity,
+        type: "ADJUSTMENT",
+        userId: stockLog.userId,
+        notes: `Reversal of deleted stock log #${stockLog.id}`,
+      },
     });
 
     return NextResponse.json(
