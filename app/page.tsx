@@ -1,11 +1,11 @@
 // app/page.tsx
 
-"use client"; // <-- TAMBAHKAN INI di baris paling atas
+"use client";
 
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion"; // <-- IMPOR motion
+import { motion } from "framer-motion";
 
 // --- Komponen Ikon SVG (Tidak ada perubahan) ---
 const CheckmarkIcon = () => (
@@ -32,10 +32,9 @@ interface ProductCardProps {
 }
 
 const ProductCard = ({ imgSrc, title, description, alt }: ProductCardProps) => (
-  // Diubah menjadi motion.div untuk animasi hover
   <motion.div 
     className="bg-white border border-slate-200 rounded-2xl shadow-lg overflow-hidden group"
-    whileHover={{ y: -8, scale: 1.03 }} // Animasi mengangkat dan sedikit membesar saat hover
+    whileHover={{ y: -8, scale: 1.03 }}
     transition={{ type: "spring", stiffness: 300 }}
   >
     <div className="relative w-full h-48">
@@ -73,7 +72,7 @@ export default function HomePage() {
   const staggerContainer = {
     animate: {
       transition: {
-        staggerChildren: 0.15, // Jeda antar animasi anak
+        staggerChildren: 0.15, 
       },
     },
   };
@@ -145,8 +144,8 @@ export default function HomePage() {
             <motion.div 
               className="text-center mb-16"
               initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }} // Animasi saat elemen masuk layar
-              viewport={{ once: true }} // Hanya animasi sekali
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: false }} 
               transition={{ duration: 0.6, ease: "easeOut" }}
             >
               <h2 className="text-3xl md:text-4xl font-bold text-slate-900">Produk Unggulan</h2>
@@ -159,11 +158,10 @@ export default function HomePage() {
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8"
               variants={staggerContainer}
               initial="initial"
-              whileInView="animate" // Mulai animasi saat grid masuk layar
-              viewport={{ once: true }}
+              whileInView="animate"
+              viewport={{ once: false }}
             >
               {products.map((product) => (
-                // Tambahkan motion.div di sini untuk efek stagger
                 <motion.div key={product.title} variants={fadeInAnimation}>
                   <ProductCard {...product} />
                 </motion.div>
@@ -179,7 +177,7 @@ export default function HomePage() {
               className="order-2 md:order-1"
               initial={{ opacity: 0, x: -50 }}
               whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
+              viewport={{ once: false }} // <-- PERUBAHAN DI SINI
               transition={{ duration: 0.8, ease: "easeOut" }}
             >
               <h2 className="text-3xl md:text-4xl font-bold text-slate-900">Mengapa Memilih Mapayo?</h2>
@@ -195,7 +193,7 @@ export default function HomePage() {
               className="relative w-full h-80 lg:h-96 rounded-2xl overflow-hidden shadow-2xl order-1 md:order-2"
               initial={{ opacity: 0, x: 50 }}
               whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
+              viewport={{ once: false }}
               transition={{ duration: 0.8, ease: "easeOut" }}
             >
               <Image src="/Aneka-Shabu-Shabu.jpeg" alt="Ilustrasi dapur bersih" fill className="object-cover" />
@@ -209,7 +207,7 @@ export default function HomePage() {
             className="container mx-auto px-6 py-20 text-center text-white"
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
+            viewport={{ once: false }} 
             transition={{ duration: 0.6, ease: "easeOut" }}
           >
             <h2 className="text-3xl md:text-4xl font-bold">Siap Memasak Hidangan Lezat & Praktis?</h2>
@@ -225,7 +223,7 @@ export default function HomePage() {
         </section>
       </main>
 
-      {/* Footer */}
+      {/* Footer  */}
       <footer className="bg-slate-900 text-slate-400 py-12">
         <div className="container mx-auto px-6 text-center">
           <p className="font-bold text-lg text-white mb-2">Mapayo Frozen Food</p>
