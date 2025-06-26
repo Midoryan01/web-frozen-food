@@ -97,15 +97,23 @@ export interface ApiResponse<T> {
 }
 
 export interface CartItem extends Product {
+  id: number;
+  name: string;
+  sellPrice: number;
   quantity: number;
 }
 
 export interface TransactionDetails {
   orderId: string;
+  customerName?: string;
   transactionDate: Date;
+  orderNumber?: string;
   items: CartItem[];
   totalAmount: number;
   paymentMethod: string;
+  cashierName: string; 
   cashReceived?: number;
   changeGiven?: number;
 }
+
+

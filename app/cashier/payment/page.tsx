@@ -6,32 +6,13 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { CreditCard, ShoppingBag, ArrowLeft, DollarSign, QrCode, Info, AlertTriangle, CheckCircle, Printer, User } from 'lucide-react';
-
-// Asumsi komponen ini ada di path yang benar
+import { TransactionDetails, CartItem } from '@/app/cashier/types';
 import LoadingSpinner from '../components/LoadingSpinner';
+import React from 'react';
 
-// Tipe Data
-interface CartItem {
-  id: number; // Ini adalah productId
-  name: string;
-  sellPrice: number;
-  imageUrl?: string | null;
-  stock: number;
-  quantity: number;
-}
-interface TransactionDetails {
-  orderId: string;
-  transactionDate: Date;
-  items: CartItem[];
-  totalAmount: number;
-  paymentMethod: string;
-  cashierName: string;
-  customerName?: string; // Tambahkan customerName ke detail
-  cashReceived?: number;
-  changeGiven?: number;
-}
 
-// Komponen Sukses dan Struk (Tidak ada perubahan signifikan)
+
+// Komponen Sukses dan Struk
 const SuccessAndReceiptView = ({ details }: { details: TransactionDetails }) => {
   const router = useRouter();
   const handlePrint = () => window.print();
@@ -43,7 +24,7 @@ const SuccessAndReceiptView = ({ details }: { details: TransactionDetails }) => 
         <CheckCircle className="text-green-500 mb-6" size={80} strokeWidth={1.5} />
         <h1 className="text-3xl font-bold text-green-800 mb-3">Pembayaran Berhasil!</h1>
         <p className="text-slate-600 mb-8 max-w-md">
-          Pesanan Anda dengan ID <span className="font-semibold text-green-700">{details.orderId}</span> telah berhasil diproses.
+          Pesanan Anda dengan No. Order <span className="font-semibold text-green-700">{details.orderNumber}</span> telah berhasil diproses.
         </p>
         <div className="flex flex-col sm:flex-row gap-4">
           <button onClick={handlePrint} className="bg-sky-600 hover:bg-sky-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors text-base flex items-center justify-center gap-2 shadow-md hover:shadow-lg">
@@ -55,14 +36,17 @@ const SuccessAndReceiptView = ({ details }: { details: TransactionDetails }) => 
         </div>
       </div>
       {/* Area Cetak Struk */}
-      <div id="receipt-print-area">
+      <div id="receipt-print-area" className="hidden print:block">
         <div className="receipt-content">
+            {/* PERUBAHAN 1: Menambahkan Header di paling atas */}
+            <div className="receipt-header">
+              <p className="store-tagline">Mapayo Frozen Food</p>
+              <p className="store-tagline-sub">Makanan Beku Berkualitas & Praktis</p>
+            </div>
             <h2 className="title">Struk Pembayaran</h2>
-            <p className="store-name">Frozen Food XYZ</p>
             <hr />
             <div className="details">
-              <p><strong>ID:</strong> {details.orderId}</p>
-              <p><strong>Tanggal:</strong> {new Date(details.transactionDate).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+              <p><strong>No. Order:</strong> {details.orderNumber}</p>
               <p><strong>Kasir:</strong> {details.cashierName}</p>
               {details.customerName && <p><strong>Pelanggan:</strong> {details.customerName}</p>}
             </div>
@@ -70,13 +54,16 @@ const SuccessAndReceiptView = ({ details }: { details: TransactionDetails }) => 
             <table className="items-table">
               <tbody>
                 {details.items.map(item => (
-                  <><tr key={item.id}>
-                    <td colSpan={3} className="item-name">{item.name}</td>
-                  </tr><tr key={`${item.id}-price`}>
+                  <React.Fragment key={item.id}>
+                    <tr>
+                      <td colSpan={3} className="item-name">{item.name}</td>
+                    </tr>
+                    <tr>
                       <td className='price-detail'>{item.quantity}x</td>
                       <td className='price-detail'>@{item.sellPrice.toLocaleString('id-ID')}</td>
-                      <td className='price-total'>{(item.sellPrice * item.quantity).toLocaleString('id-ID')}</td>
-                    </tr></>
+                      <td className='price-total'>Rp{(item.sellPrice * item.quantity).toLocaleString('id-ID')}</td>
+                    </tr>
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
@@ -102,6 +89,17 @@ const SuccessAndReceiptView = ({ details }: { details: TransactionDetails }) => 
             <hr />
             <p className="footer-thanks">Terima Kasih!</p>
             <p className="footer-contact">Layanan Pelanggan: 0812-3456-7890</p>
+            {/* PERUBAHAN 2: Memindahkan Tanggal ke paling bawah */}
+            <p className="receipt-footer-date">
+              {new Date(details.transactionDate).toLocaleString('en-US', {
+                month: 'numeric',
+                day: 'numeric',
+                year: '2-digit',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+              })}
+            </p>
         </div>
       </div>
 
@@ -113,8 +111,13 @@ const SuccessAndReceiptView = ({ details }: { details: TransactionDetails }) => 
           #receipt-print-area, #receipt-print-area * { visibility: visible; }
           #receipt-print-area { position: absolute; left: 0; top: 0; width: 100%; }
           .receipt-content { width: 72mm; max-width: 72mm; margin: 0 auto; padding: 2mm; font-family: 'Courier New', Courier, monospace; font-size: 9pt; color: black; line-height: 1.4; }
+          
+          /* PERUBAHAN 3: Menambahkan style untuk header baru */
+          .receipt-content .receipt-header { text-align: center; margin-bottom: 3mm; }
+          .receipt-content .store-tagline { font-weight: bold; font-size: 10pt; margin: 0; }
+          .receipt-content .store-tagline-sub { font-size: 8.5pt; margin: 0; }
+          
           .receipt-content .title { font-size: 11pt; font-weight: bold; text-align: center; margin-bottom: 2mm; }
-          .receipt-content .store-name { text-align: center; font-weight: bold; margin-bottom: 4mm; }
           .receipt-content hr { border: none; border-top: 1px dashed black; margin: 3mm 0; }
           .receipt-content .details p { margin: 0; line-height: 1.3; }
           .receipt-content .items-table { width: 100%; border-collapse: collapse; }
@@ -129,6 +132,9 @@ const SuccessAndReceiptView = ({ details }: { details: TransactionDetails }) => 
           .receipt-content .totals-row span:last-child { text-align: right; }
           .receipt-content .footer-thanks, .receipt-content .footer-contact { text-align: center; margin-top: 3mm; }
           .receipt-content .footer-contact { font-size: 8pt; margin-top: 1mm; }
+
+          /* PERUBAHAN 3: Menambahkan style untuk tanggal di footer */
+          .receipt-content .receipt-footer-date { text-align: center; font-size: 8pt; margin-top: 4mm; }
         }
       `}</style>
     </>
@@ -144,7 +150,7 @@ export default function PaymentPage() {
   const [cashReceived, setCashReceived] = useState<string>('');
   const [changeGiven, setChangeGiven] = useState<number>(0);
   const [lastTransactionDetails, setLastTransactionDetails] = useState<TransactionDetails | null>(null);
-  const [customerName, setCustomerName] = useState<string>(''); // State untuk nama pelanggan
+  const [customerName, setCustomerName] = useState<string>('');
 
   const router = useRouter();
   const { data: session } = useSession();
@@ -182,9 +188,6 @@ export default function PaymentPage() {
     setPaymentStatus('idle');
   };
 
-  /**
-   * Mengirim data pesanan ke API endpoint /api/orders
-   */
   const handleSubmitOrder = async () => {
     const isCashPayment = paymentMethod.toUpperCase() === 'CASH';
     const isCashInvalid = isCashPayment && (parseFloat(cashReceived) < totalAmount || isNaN(parseFloat(cashReceived)));
@@ -195,11 +198,8 @@ export default function PaymentPage() {
 
     setPaymentStatus('processing');
 
-    // **INTEGRASI API DIMULAI DI SINI**
-
-    // 1. Siapkan payload sesuai dengan struktur yang dibutuhkan API
     const orderPayload = {
-      customerName: customerName.trim() || "PELANGGAN", // Gunakan state nama pelanggan
+      customerName: customerName.trim() || "PELANGGAN",
       cashierId: session?.user?.id || 'unknown-cashier', 
       items: cartItems.map(item => ({
         productId: item.id,
@@ -210,12 +210,9 @@ export default function PaymentPage() {
     };
 
     try {
-      // 2. Kirim data ke API menggunakan fetch
       const response = await fetch('/api/orders', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderPayload),
       });
 
@@ -226,16 +223,16 @@ export default function PaymentPage() {
 
       const result = await response.json();
       
-      // 4. Buat detail transaksi untuk ditampilkan di halaman sukses
       const transactionDetails: TransactionDetails = {
-        orderId: result.orderId,
-        transactionDate: new Date(),
+        orderNumber: result.orderNumber,
+        transactionDate: new Date(result.orderDate),
         items: cartItems,
         totalAmount: totalAmount,
-        paymentMethod: paymentMethod,
-        cashierName: session?.user?.name || 'Kasir',
-        customerName: orderPayload.customerName, // Tambahkan nama pelanggan ke detail
+        cashierName: result.cashier?.fullName || session?.user?.name || 'Kasir',
+        customerName: orderPayload.customerName,
         ...(isCashPayment && { cashReceived: parseFloat(cashReceived), changeGiven }),
+        orderId: '',
+        paymentMethod: ''
       };
 
       setLastTransactionDetails(transactionDetails);
@@ -248,7 +245,6 @@ export default function PaymentPage() {
       console.error("Error submitting order:", err);
       setPaymentStatus('failed');
     }
-    // **INTEGRASI API BERAKHIR DI SINI**
   };
 
   // ----- RENDER -----
@@ -277,7 +273,6 @@ export default function PaymentPage() {
         <main className="grid grid-cols-1 md:grid-cols-5 gap-8">
           {/* Kolom Kiri: Detail & Form Pembayaran */}
           <div className="md:col-span-3 bg-white p-6 sm:p-8 rounded-2xl shadow-lg border border-slate-200">
-            {/* PENAMBAHAN: Input Nama Pelanggan */}
             <section className="mb-6">
               <label htmlFor="customerName" className="text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
                 <User size={16} /> Nama Pelanggan

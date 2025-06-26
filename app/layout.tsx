@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   authors: [{ name: 'Mapayo Frozen Food' }],
   // Menambahkan ikon untuk tab browser
   icons: {
-    icon: '/favicon.ico', // Pastikan Anda memiliki file favicon.ico di folder /public
+    icon: '/favicon.ico', 
   },
 };
 
