@@ -48,10 +48,10 @@ npm run dev
 
 ## 🔌 API Endpoint Sample
 
-- `GET /api/products` → Semua produk
-- `GET /api/orders` → Semua order
-- `GET /api/payment` → Semua payment
-- `GET /api/orderItems` → Ambil daftar item order dengan nama produk
+- `GET /api/products` → all product
+- `GET /api/orders` → all orders
+- `GET /api/orderItems` → All Detail Orders
+- `GET /api/users` → All payment
 
 ---
 
