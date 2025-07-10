@@ -79,13 +79,25 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ initialUsers, r
         setShowModal(true);
     };
     
-    const handleDeleteUser = async (userId: number) => {
-        if(window.confirm('Apakah Anda yakin ingin menghapus pengguna ini?')) {
-            // Logika untuk menghapus user via API
-            alert(`Placeholder: Menghapus user dengan ID ${userId}`);
-            await refreshUsers(); 
-        }
-    };
+const handleDeleteUser = async (userId: number) => {
+    if (window.confirm('Apakah Anda yakin ingin menghapus pengguna ini?')) {
+        try {
+            const res = await fetch(`${apiBaseUrl}/users/${userId}`, {
+                method: 'DELETE',
+            });
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.message || 'Gagal menghapus pengguna');
+            }
+            alert('Pengguna berhasil dihapus');
+            await refreshUsers();
+        } catch (error: any) {
+    console.error("Error saat menghapus user:", error);
+    alert('Terjadi kesalahan saat menghapus pengguna');
+    }
+    }
+};
+
 
     return (
         <div className="space-y-6">
