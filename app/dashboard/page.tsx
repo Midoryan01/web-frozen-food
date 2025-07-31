@@ -91,7 +91,7 @@ export default function DashboardPage() {
     []
   );
 
-  // Kumpulan fungsi fetch spesifik (tidak perlu diubah)
+  // Kumpulan fetch 
   const fetchProducts = useCallback(
     () => fetchData<Product>("/api/products?limit=1000", setProducts),
     [fetchData]
@@ -112,6 +112,22 @@ export default function DashboardPage() {
     () => fetchData<User>("/api/users", setUsers),
     [fetchData]
   );
+
+
+useEffect(() => {
+  const loadAll = () => {
+    fetchProducts();
+    fetchCategories();
+    fetchOrders();
+    fetchStockLogs();
+    fetchUsers();
+  };
+
+  loadAll(); 
+  const interval = setInterval(loadAll, 10_000);
+
+  return () => clearInterval(interval); 
+}, [fetchProducts, fetchCategories, fetchOrders, fetchStockLogs, fetchUsers]);
 
   const fetchDashboardSummary = useCallback(async () => {
     try {
