@@ -126,13 +126,21 @@ export async function POST(request: NextRequest) {
       // Simpan URL publiknya
       imageUrl = blob.url;
     }
-    // --- AKHIR DARI LOGIKA UPLOAD VERCEL BLOB ---
+    // 1. Ambil id berikutnya
+      const lastProduct = await prisma.product.findFirst({
+        select: { id: true },
+        orderBy: { id: 'desc' }
+      });
+      const nextId = (lastProduct?.id ?? 0) + 1;
+
+      // 2. Buat SKU otomatis
+      const autoSKU = `SKU-${String(nextId).padStart(6, '0')}`;
 
     // Buat produk di database dengan SEMUA data dalam satu kali operasi
     const newProduct = await prisma.product.create({
       data: {
         name,
-        sku: sku || undefined,
+        sku: autoSKU,
         buyPrice,
         sellPrice,
         stock,
