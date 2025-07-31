@@ -132,6 +132,9 @@ export async function POST(request: NextRequest) {
         where: { id: order.id },
         include: { items: true }
       });
+    }, {
+      maxWait: 10000, 
+      timeout: 15000  
     });
 
     return NextResponse.json(newOrder, { status: 201 });
