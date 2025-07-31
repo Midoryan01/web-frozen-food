@@ -6,6 +6,7 @@ import { generateSalesReportPDF } from '../../utils/pdfGenerator';
 import type { Order } from '../types';
 import Script from 'next/script';
 import PaginationControls from '../components/PaginationControls';
+import { useSession } from 'next-auth/react';
 
 declare const XLSX: any;
 
@@ -17,6 +18,8 @@ const SalesReportView: React.FC<{ orders: Order[] }> = ({ orders }) => {
     // State untuk navigasi
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
+    const { data: session } = useSession();
+    const userName = session?.user?.fullName || 'ADMIN';
 
     // Logika untuk memfilter item penjualan
     const filteredSoldItems = useMemo(() => {
@@ -89,14 +92,15 @@ const SalesReportView: React.FC<{ orders: Order[] }> = ({ orders }) => {
         XLSX.writeFile(workbook, fileName);
     };
 
+
     // Handler untuk tombol print PDF
-    const handlePrintPdf = () => {
-        if (filteredSoldItems.length === 0) {
-            alert("Tidak ada data untuk dicetak dalam format PDF.");
-            return;
-        }
-        generateSalesReportPDF(filteredSoldItems, dateRange, totalRevenue, totalProfit);
-    };
+            const handlePrintPdf = () => {
+            if (filteredSoldItems.length === 0) {
+                alert('Tidak ada data untuk dicetak.');
+                return;
+            }
+            generateSalesReportPDF(filteredSoldItems, dateRange, totalRevenue, totalProfit, userName);
+            };
 
     return (
         <>

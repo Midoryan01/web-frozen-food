@@ -8,7 +8,8 @@ export const generateSalesReportPDF = (
     items: ProcessedSoldItem[], 
     dateRange: { start: string, end: string },
     totalRevenue: number,
-    totalProfit: number
+    totalProfit: number,
+    userName: string = 'ADMIN'
 ) => {
     // Inisialisasi dokumen PDF
     const doc = new jsPDF();
@@ -27,7 +28,20 @@ export const generateSalesReportPDF = (
     } else {
         doc.text("Periode: Semua Waktu", 14, 30);
     }
-    
+
+    doc.text(`Dicetak oleh: ${userName}`, 14, 38);
+    doc.text(
+    `Waktu Cetak: ${new Date().toLocaleString('id-ID', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    })}`,
+    14,
+    46
+    );
+    const startY = 48;
     // Buat salinan array dan urutkan berdasarkan tanggal ascending
     const sortedItems = [...items].sort((a, b) => new Date(a.orderDate).getTime() - new Date(b.orderDate).getTime());
     
@@ -45,7 +59,7 @@ export const generateSalesReportPDF = (
     autoTable(doc, {
         head: [tableColumns],
         body: tableRows,
-        startY: 38,
+        startY: 56,
         theme: 'grid',
         headStyles: { fillColor: [41, 128, 185] },
     });
