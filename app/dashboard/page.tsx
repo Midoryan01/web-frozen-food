@@ -121,6 +121,9 @@ useEffect(() => {
     fetchOrders();
     fetchStockLogs();
     fetchUsers();
+    if (currentPage === "dashboard") {
+    fetchDashboardSummary(); 
+  }
   };
 
   loadAll(); 
