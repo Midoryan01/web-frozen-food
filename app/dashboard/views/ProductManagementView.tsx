@@ -125,6 +125,7 @@ const ProductManagementView: React.FC<ProductManagementViewProps> = ({ initialPr
                          <table className="w-full min-w-[1000px]">
                              <thead className="bg-slate-100 border-b border-slate-300">
                                  <tr>
+                                    <ThSortable name="ID" sortKey="id" requestSort={requestSort} sortConfig={sortConfig} className="w-16 text-center"/>
                                      <ThSortable name="Gambar" sortKey={null} requestSort={requestSort} sortConfig={sortConfig} className="w-20"/>
                                      <ThSortable name="Nama Produk" sortKey="name" requestSort={requestSort} sortConfig={sortConfig} />
                                      <ThSortable name="SKU" sortKey="sku" requestSort={requestSort} sortConfig={sortConfig} />
@@ -138,6 +139,7 @@ const ProductManagementView: React.FC<ProductManagementViewProps> = ({ initialPr
                              <tbody className="divide-y divide-slate-200">
                                  {paginatedProducts.map(product => (
                                      <tr key={product.id} className="hover:bg-sky-50/50 transition-colors duration-150">
+                                        <td className="p-3 text-sm text-slate-700 text-center font-medium">{product.id}</td>
                                          <td className="p-3"><div className="w-12 h-12 relative"><Image src={product.imageUrl || 'https://placehold.co/48x48/e2e8f0/64748b?text=N/A'} alt={product.name} layout="fill" className="rounded-md object-cover" /></div></td>
                                          <td className="p-3 text-sm text-slate-800 font-medium align-top">{product.name}</td>
                                          <td className="p-3 text-sm text-slate-500 align-top">{product.sku || '-'}</td>
