@@ -36,12 +36,20 @@ export interface User {
 export interface OrderItem {
   id: number;
   productId: number;
-  product: Pick<Product, "id" | "name" | "sku" | "imageUrl" | "buyPrice">;
+  product: Pick<Product, "id" | "name" | "sku" | "imageUrl"| "supplier" | "buyPrice">;
   quantity: number;
   buyPrice: number;
   sellPrice: number;
   subtotal: number;
+  stockLogId?: number;          // ID dari StockLog
+  initialStock?: number;        // stok sebelum transaksi
+  stockChange?: number;         // perubahan stok (negatif untuk penjualan)
+  currentStock?: number;        // sisa stok setelah transaksi
+  orderDate: string;
+  orderNumber: string;
 }
+
+
 
 export interface Order {
   id: number;
@@ -59,8 +67,9 @@ export interface Order {
 }
 
 export interface StockLog {
+  productId: Pick<Product, "id" | "name" | "sku" | "supplier">;
   id: number;
-  product: Pick<Product, 'name' | 'sku'>;
+  product: Pick<Product, 'name' | 'sku'| "supplier">;
   quantity: number;
   type: 'PURCHASE' | 'SALE' | 'ADJUSTMENT' | 'SPOILAGE' | 'RETURN_CUSTOMER' | 'RETURN_SUPPLIER';
   user: Pick<User, 'fullName'>;

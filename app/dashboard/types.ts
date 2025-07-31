@@ -39,7 +39,7 @@ export interface User {
 export interface OrderItem {
   id: number;
   productId: number;
-  product: Pick<Product, "name" | "sku" | "buyPrice" | "imageUrl">;
+  product: Pick<Product, "name" | "sku" | "supplier"|"buyPrice" | "imageUrl">;
   quantity: number;
   buyPrice: number;
   sellPrice: number;
@@ -64,7 +64,7 @@ export interface Order {
 
 export interface StockLog {
   id: number;
-  product: Pick<Product, "name" | "sku">;
+  product: Pick<Product, "name" | "sku"|"supplier">;
   quantity: number;
   type:
     | "PURCHASE"
