@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { Search, Eye, RefreshCw, ListOrdered } from 'lucide-react';
 import type { Order } from '../types';
 import OrderDetailModal from '../components/OrderDetailModal';
-import PaginationControls from '../components/PaginationControls'; // 1. Impor komponen
+import PaginationControls from '../components/PaginationControls'; 
 
 interface TransactionViewProps {
     orders: Order[];
